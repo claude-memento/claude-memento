@@ -57,6 +57,8 @@ Claude Memento addresses the context loss problem in Claude Code by providing:
 - **Intelligent Indexing**: Fast checkpoint search and retrieval
 - **Hook System**: Custom scripts for save/load events
 - **Incremental Backups**: Only saves changes to optimize storage
+- **Full System Backup**: Creates complete backup of ~/.claude directory before installation
+- **Easy Restoration**: One-command restore script included with backups
 
 ## Installation 📦
 
@@ -119,7 +121,7 @@ Context Processing → Compression → Storage
                                       ↓
                                  Checkpoint
                                       ↓
-                              ~/.claude-memento/
+                              ~/.claude/memento/
                                       ↓
 /cm:load command ← Decompression ← Retrieval
     ↓
@@ -160,14 +162,28 @@ Restored Session
 
 ## Configuration 🔧
 
-Default configuration (`~/.claude-memento/config/config.json`):
+Default configuration (`~/.claude/memento/config/default.json`):
 ```json
 {
-  "autoSave": true,
-  "saveInterval": 300,
-  "maxCheckpoints": 10,
-  "compressionEnabled": true,
-  "backupEnabled": true
+  "checkpoint": {
+    "retention": 10,
+    "auto_save": true,
+    "interval": 900,
+    "strategy": "full"
+  },
+  "memory": {
+    "max_size": "10MB",
+    "compression": true,
+    "format": "markdown"
+  },
+  "session": {
+    "timeout": 300,
+    "auto_restore": true
+  },
+  "integration": {
+    "superclaude": true,
+    "command_prefix": "cm:"
+  }
 }
 ```
 
@@ -192,9 +208,11 @@ claude-memento/
 
 **Commands not working:**
 ```bash
-# Restart Claude Code
-# Or manually check integration
-cat ~/.claude/commands.json | grep cm:
+# Check if commands are installed
+ls ~/.claude/commands/cm/
+
+# Verify status command
+/cm:status
 ```
 
 **Installation fails:**
@@ -210,6 +228,24 @@ chmod +x install.sh
 /cm:status --check
 # Repair if needed
 ./src/utils/repair.sh
+```
+
+**Path structure issues after installation:**
+```bash
+# If commands fail with "file not found" errors
+# This might be due to incorrect installation
+# Reinstall with the updated script:
+./uninstall.sh && ./install.sh
+```
+
+**Permission errors:**
+```bash
+# If you get "permission denied" errors
+# Check file permissions
+ls -la ~/.claude/memento/src/**/*.sh
+
+# Manually fix permissions if needed
+find ~/.claude/memento/src -name "*.sh" -type f -exec chmod +x {} \;
 ```
 
 ## Contributing 🤝
