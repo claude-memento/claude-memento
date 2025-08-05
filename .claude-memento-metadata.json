@@ -1,0 +1,55 @@
+{
+  "commands": {
+    "auto_update": false,
+    "enabled": true,
+    "version": "1.0.0"
+  },
+  "components": {
+    "commands": {
+      "category": "commands",
+      "files_count": 7,
+      "installed_at": "2025-08-05T12:00:00.000000",
+      "version": "1.0.0"
+    },
+    "core": {
+      "category": "core",
+      "files_count": 3,
+      "installed_at": "2025-08-05T12:00:00.000000",
+      "version": "1.0.0"
+    },
+    "utils": {
+      "category": "utils",
+      "files_count": 4,
+      "installed_at": "2025-08-05T12:00:00.000000",
+      "version": "1.0.0"
+    },
+    "bridge": {
+      "category": "bridge",
+      "files_count": 1,
+      "installed_at": "2025-08-05T12:00:00.000000",
+      "version": "1.0.0"
+    }
+  },
+  "framework": {
+    "components": [
+      "core",
+      "commands",
+      "utils",
+      "bridge"
+    ],
+    "description": "Memory management extension for Claude Code with conversation persistence",
+    "installation_type": "global",
+    "name": "Claude Memento",
+    "version": "1.0.0"
+  },
+  "claude_memento": {
+    "auto_update": false,
+    "enabled": true,
+    "profile": "default",
+    "version": "1.0.0",
+    "namespace": "cm",
+    "checkpoint_retention": 30,
+    "auto_save": true,
+    "compression_enabled": true
+  }
+}

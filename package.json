@@ -1,0 +1,35 @@
+{
+  "name": "claude-memento",
+  "version": "1.0.0",
+  "description": "Memory management extension for Claude Code with conversation persistence",
+  "main": "src/cli.sh",
+  "scripts": {
+    "install": "./install.sh",
+    "uninstall": "./uninstall.sh",
+    "test": "./test.sh"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "superclaude",
+    "memory",
+    "memento",
+    "extension",
+    "conversation",
+    "persistence",
+    "checkpoint"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {},
+  "peerDependencies": {
+    "claude-code": ">=1.0.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/claude-memento/claude-memento.git"
+  }
+}
