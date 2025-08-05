@@ -57,6 +57,8 @@ Claude Memento 通过提供以下功能解决了 Claude Code 的上下文丢失�
 - **智能索引**：快速检查点搜索和检索
 - **钩子系统**：用于保存/加载事件的自定义脚本
 - **增量备份**：仅保存更改以优化存储
+- **完整系统备份**：安装前创建~/.claude目录的完整备份
+- **简单恢复**：备份中包含一键恢复脚本
 
 ## 安装 📦
 
@@ -119,7 +121,7 @@ Claude Code 会话
                      ↓
                  检查点
                      ↓
-             ~/.claude-memento/
+             ~/.claude/memento/
                      ↓
 /cm:load 命令 ← 解压缩 ← 检索
     ↓
@@ -160,14 +162,28 @@ Claude Code 会话
 
 ## 配置 🔧
 
-默认配置（`~/.claude-memento/config/config.json`）：
+默认配置（`~/.claude/memento/config/default.json`）：
 ```json
 {
-  "autoSave": true,
-  "saveInterval": 300,
-  "maxCheckpoints": 10,
-  "compressionEnabled": true,
-  "backupEnabled": true
+  "checkpoint": {
+    "retention": 10,
+    "auto_save": true,
+    "interval": 900,
+    "strategy": "full"
+  },
+  "memory": {
+    "max_size": "10MB",
+    "compression": true,
+    "format": "markdown"
+  },
+  "session": {
+    "timeout": 300,
+    "auto_restore": true
+  },
+  "integration": {
+    "superclaude": true,
+    "command_prefix": "cm:"
+  }
 }
 ```
 
@@ -192,9 +208,11 @@ claude-memento/
 
 **命令不工作:**
 ```bash
-# 重启 Claude Code
-# 或手动检查集成
-cat ~/.claude/commands.json | grep cm:
+# 检查命令是否已安装
+ls ~/.claude/commands/cm/
+
+# 验证状态命令
+/cm:status
 ```
 
 **安装失败:**
@@ -210,6 +228,24 @@ chmod +x install.sh
 /cm:status --check
 # 如需要则修复
 ./src/utils/repair.sh
+```
+
+**安装后的路径结构问题:**
+```bash
+# 如果命令失败并显示"file not found"错误
+# 这可能是由于不正确的安装
+# 使用更新的脚本重新安装:
+./uninstall.sh && ./install.sh
+```
+
+**权限错误:**
+```bash
+# 如果遇到"permission denied"错误
+# 检查文件权限
+ls -la ~/.claude/memento/src/**/*.sh
+
+# 如需要，手动修复权限
+find ~/.claude/memento/src -name "*.sh" -type f -exec chmod +x {} \;
 ```
 
 ## 贡献 🤝

@@ -57,6 +57,8 @@ Claude Memento는 Claude Code의 컨텍스트 손실 문제를 다음과 같은 
 - **지능형 인덱싱**: 빠른 체크포인트 검색 및 검색
 - **훅 시스템**: 저장/로드 이벤트에 대한 커스텀 스크립트
 - **증분 백업**: 저장소 최적화를 위해 변경사항만 저장
+- **전체 시스템 백업**: 설치 전 ~/.claude 디렉토리의 전체 백업 생성
+- **간편한 복원**: 백업에 포함된 원클릭 복원 스크립트
 
 ## 설치 📦
 
@@ -119,7 +121,7 @@ Claude Code 세션
                         ↓
                    체크포인트
                         ↓
-                ~/.claude-memento/
+                ~/.claude/memento/
                         ↓
 /cm:load 명령어 ← 압축 해제 ← 검색
     ↓
@@ -160,14 +162,28 @@ Claude Code 세션
 
 ## 설정 🔧
 
-기본 설정 (`~/.claude-memento/config/config.json`):
+기본 설정 (`~/.claude/memento/config/default.json`):
 ```json
 {
-  "autoSave": true,
-  "saveInterval": 300,
-  "maxCheckpoints": 10,
-  "compressionEnabled": true,
-  "backupEnabled": true
+  "checkpoint": {
+    "retention": 10,
+    "auto_save": true,
+    "interval": 900,
+    "strategy": "full"
+  },
+  "memory": {
+    "max_size": "10MB",
+    "compression": true,
+    "format": "markdown"
+  },
+  "session": {
+    "timeout": 300,
+    "auto_restore": true
+  },
+  "integration": {
+    "superclaude": true,
+    "command_prefix": "cm:"
+  }
 }
 ```
 
@@ -192,9 +208,11 @@ claude-memento/
 
 **명령어가 작동하지 않음:**
 ```bash
-# Claude Code 재시작
-# 또는 수동으로 통합 확인
-cat ~/.claude/commands.json | grep cm:
+# 명령어가 설치되었는지 확인
+ls ~/.claude/commands/cm/
+
+# 상태 명령어 확인
+/cm:status
 ```
 
 **설치 실패:**
@@ -210,6 +228,24 @@ chmod +x install.sh
 /cm:status --check
 # 필요시 복구
 ./src/utils/repair.sh
+```
+
+**설치 후 경로 구조 문제:**
+```bash
+# "file not found" 오류로 명령어가 실패하는 경우
+# 잘못된 설치가 원인일 수 있습니다
+# 업데이트된 스크립트로 재설치:
+./uninstall.sh && ./install.sh
+```
+
+**권한 오류:**
+```bash
+# "permission denied" 오류가 발생하는 경우
+# 파일 권한 확인
+ls -la ~/.claude/memento/src/**/*.sh
+
+# 필요시 수동으로 권한 수정
+find ~/.claude/memento/src -name "*.sh" -type f -exec chmod +x {} \;
 ```
 
 ## 기여하기 🤝
