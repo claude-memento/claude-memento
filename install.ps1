@@ -139,9 +139,9 @@ Write-Host "Creating directories..." -ForegroundColor Yellow
     New-Item -ItemType Directory -Force -Path $_ | Out-Null
 }
 
-# Copy core files
+# Copy core files with proper structure
 Write-Host "Installing core files..." -ForegroundColor Yellow
-Copy-Item -Path "$ScriptDir\src\*" -Destination $MementoDir -Recurse -Force
+Copy-Item -Path "$ScriptDir\src" -Destination $MementoDir -Recurse -Force
 
 # Copy markdown commands to cm namespace directory
 Write-Host "Installing Claude Code integration commands..." -ForegroundColor Yellow
@@ -200,11 +200,21 @@ $hooks = @'
 '@
 $hooks | Out-File -FilePath "$MementoDir\config\hooks.json" -Encoding UTF8
 
+# Set permissions for shell scripts (if using Git Bash)
+Write-Host "Setting execute permissions..." -ForegroundColor Yellow
+if (Get-Command bash -ErrorAction SilentlyContinue) {
+    # Use bash to set permissions for all .sh files
+    & bash -c "find '$MementoDir/src' -name '*.sh' -type f -exec chmod +x {} \; 2>/dev/null || true"
+    Write-Host "✓ Execute permissions set for shell scripts" -ForegroundColor Green
+} else {
+    Write-Host "⚠ Git Bash not found. You may need to manually set execute permissions." -ForegroundColor Yellow
+}
+
 # Create batch wrapper
 Write-Host "Creating Windows wrapper..." -ForegroundColor Yellow
 $wrapper = @"
 @echo off
-bash "$MementoDir\cli.sh" %*
+bash "$MementoDir\src\cli.sh" %*
 "@
 $wrapper | Out-File -FilePath "$env:USERPROFILE\claude-memento.bat" -Encoding ASCII
 

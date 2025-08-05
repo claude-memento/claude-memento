@@ -158,9 +158,9 @@ mkdir -p "$MEMENTO_DIR"/{checkpoints,config,logs}
 mkdir -p "$COMMANDS_DIR"
 mkdir -p "$CM_COMMANDS_DIR"
 
-# Copy core files
+# Copy core files with proper structure
 echo -e "${YELLOW}Installing core files...${NC}"
-cp -r src/* "$MEMENTO_DIR/"
+cp -r src "$MEMENTO_DIR/"
 
 # Copy markdown commands to cm namespace directory for Claude Code integration
 echo -e "${YELLOW}Installing Claude Code integration commands...${NC}"
@@ -217,9 +217,13 @@ cat > "$MEMENTO_DIR/config/hooks.json" << 'EOF'
 }
 EOF
 
-# Set permissions
-chmod +x "$MEMENTO_DIR"/*.sh 2>/dev/null || true
-chmod +x "$MEMENTO_DIR"/**/*.sh 2>/dev/null || true
+# Set permissions for all shell scripts
+echo -e "${YELLOW}Setting execute permissions...${NC}"
+find "$MEMENTO_DIR/src" -name "*.sh" -type f -exec chmod +x {} \; 2>/dev/null || true
+# Also make the main CLI script executable
+chmod +x "$MEMENTO_DIR/src/cli.sh" 2>/dev/null || true
+# Make bridge script executable
+chmod +x "$MEMENTO_DIR/src/bridge/claude-code-bridge.sh" 2>/dev/null || true
 
 # Create installation log
 echo -e "${YELLOW}Creating installation log...${NC}"
