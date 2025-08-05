@@ -3,8 +3,8 @@
 # Last command - Show last checkpoint
 
 MEMENTO_DIR="$HOME/.claude/memento"
-source "$MEMENTO_DIR/utils/common.sh"
-source "$MEMENTO_DIR/utils/logger.sh"
+source "$MEMENTO_DIR/src/utils/common.sh"
+source "$MEMENTO_DIR/src/utils/logger.sh"
 
 # Main function
 main() {

@@ -3,8 +3,8 @@
 # Checkpoint core functionality
 
 MEMENTO_DIR="$HOME/.claude/memento"
-source "$MEMENTO_DIR/utils/common.sh"
-source "$MEMENTO_DIR/utils/logger.sh"
+source "$MEMENTO_DIR/src/utils/common.sh"
+source "$MEMENTO_DIR/src/utils/logger.sh"
 
 # Create checkpoint
 create_checkpoint() {

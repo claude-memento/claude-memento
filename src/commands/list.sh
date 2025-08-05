@@ -3,9 +3,9 @@
 # List command - List all checkpoints
 
 MEMENTO_DIR="$HOME/.claude/memento"
-source "$MEMENTO_DIR/utils/common.sh"
-source "$MEMENTO_DIR/utils/logger.sh"
-source "$MEMENTO_DIR/core/checkpoint.sh"
+source "$MEMENTO_DIR/src/utils/common.sh"
+source "$MEMENTO_DIR/src/utils/logger.sh"
+source "$MEMENTO_DIR/src/core/checkpoint.sh"
 
 # Parse arguments
 LIMIT=10

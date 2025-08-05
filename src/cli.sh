@@ -7,8 +7,8 @@ VERSION="1.0.0"
 MEMENTO_DIR="$HOME/.claude/memento"
 
 # Source utilities
-source "$MEMENTO_DIR/utils/common.sh"
-source "$MEMENTO_DIR/utils/logger.sh"
+source "$MEMENTO_DIR/src/utils/common.sh"
+source "$MEMENTO_DIR/src/utils/logger.sh"
 
 # Show help
 show_help() {
@@ -51,27 +51,27 @@ main() {
     case "${1:-help}" in
         save)
             shift
-            "$MEMENTO_DIR/commands/save.sh" "$@"
+            "$MEMENTO_DIR/src/commands/save.sh" "$@"
             ;;
         load)
             shift
-            "$MEMENTO_DIR/commands/load.sh" "$@"
+            "$MEMENTO_DIR/src/commands/load.sh" "$@"
             ;;
         status)
             shift
-            "$MEMENTO_DIR/commands/status.sh" "$@"
+            "$MEMENTO_DIR/src/commands/status.sh" "$@"
             ;;
         last)
             shift
-            "$MEMENTO_DIR/commands/last.sh" "$@"
+            "$MEMENTO_DIR/src/commands/last.sh" "$@"
             ;;
         list)
             shift
-            "$MEMENTO_DIR/commands/list.sh" "$@"
+            "$MEMENTO_DIR/src/commands/list.sh" "$@"
             ;;
         config)
             shift
-            "$MEMENTO_DIR/commands/config.sh" "$@"
+            "$MEMENTO_DIR/src/commands/config.sh" "$@"
             ;;
         --version|-v|version)
             echo "Claude Memento v$VERSION"

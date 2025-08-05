@@ -8,10 +8,10 @@ set -e
 # Get the directory where this script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MEMENTO_DIR="$(dirname "$(dirname "$SCRIPT_DIR")")"
-COMMANDS_DIR="$MEMENTO_DIR/commands"
+COMMANDS_DIR="$MEMENTO_DIR/src/commands"
 
 # Source common utilities
-source "$MEMENTO_DIR/utils/common.sh" 2>/dev/null || {
+source "$MEMENTO_DIR/src/utils/common.sh" 2>/dev/null || {
     echo "Error: Could not load common utilities"
     exit 1
 }
@@ -39,7 +39,7 @@ execute_command() {
             "$COMMANDS_DIR/config.sh" $args
             ;;
         "hooks")
-            "$MEMENTO_DIR/core/hooks.sh" $args
+            "$MEMENTO_DIR/src/core/hooks.sh" $args
             ;;
         "last")
             "$COMMANDS_DIR/last.sh" $args

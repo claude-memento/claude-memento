@@ -3,9 +3,9 @@
 # Load command - Restore context from memory
 
 MEMENTO_DIR="$HOME/.claude/memento"
-source "$MEMENTO_DIR/utils/common.sh"
-source "$MEMENTO_DIR/utils/logger.sh"
-source "$MEMENTO_DIR/core/memory.sh"
+source "$MEMENTO_DIR/src/utils/common.sh"
+source "$MEMENTO_DIR/src/utils/logger.sh"
+source "$MEMENTO_DIR/src/core/memory.sh"
 
 # Parse arguments
 CHECKPOINT=""
