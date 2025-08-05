@@ -295,3 +295,13 @@ A: Claude Memento는 Claude Code 업데이트와 호환되도록 설계되었습
 **도움이 필요하신가요?** [문서](docs/README.md)를 확인하거나 [이슈를 열어주세요](https://github.com/claude-memento/claude-memento/issues).
 
 **Claude Memento가 마음에 드시나요?** [GitHub](https://github.com/claude-memento/claude-memento)에서 ⭐를 주세요!
+
+## Star History
+
+<a href="https://www.star-history.com/#claude-memento/claude-memento&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=claude-memento/claude-memento&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=claude-memento/claude-memento&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=claude-memento/claude-memento&type=Date" />
+ </picture>
+</a>

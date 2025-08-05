@@ -295,3 +295,13 @@ find ~/.claude/memento/src -name "*.sh" -type f -exec chmod +x {} \;
 **需要帮助？** 查看我们的[文档](docs/README.md)或[提交问题](https://github.com/claude-memento/claude-memento/issues)。
 
 **喜欢 Claude Memento？** 在 [GitHub](https://github.com/claude-memento/claude-memento) 上给我们一个 ⭐！
+
+## Star History
+
+<a href="https://www.star-history.com/#claude-memento/claude-memento&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=claude-memento/claude-memento&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=claude-memento/claude-memento&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=claude-memento/claude-memento&type=Date" />
+ </picture>
+</a>

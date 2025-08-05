@@ -295,3 +295,13 @@ A: Claude MementoはClaude Codeの更新と前方互換性を持つように設�
 **ヘルプが必要ですか？** [ドキュメント](docs/README.md)を確認するか、[イシューを開いてください](https://github.com/claude-memento/claude-memento/issues)。
 
 **Claude Mementoが気に入りましたか？** [GitHub](https://github.com/claude-memento/claude-memento)で⭐を付けてください！
+
+## Star History
+
+<a href="https://www.star-history.com/#claude-memento/claude-memento&Date">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=claude-memento/claude-memento&type=Date&theme=dark" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/svg?repos=claude-memento/claude-memento&type=Date" />
+   <img alt="Star History Chart" src="https://api.star-history.com/svg?repos=claude-memento/claude-memento&type=Date" />
+ </picture>
+</a>
