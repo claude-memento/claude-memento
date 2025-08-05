@@ -1,0 +1,32 @@
+{
+  "version": "1.0.0",
+  "memory": {
+    "autoSave": true,
+    "saveInterval": 300,
+    "maxCheckpoints": 10,
+    "compressionEnabled": true,
+    "backupEnabled": true
+  },
+  "paths": {
+    "checkpointsDir": "~/.claude-memento/checkpoints",
+    "configDir": "~/.claude-memento/config",
+    "logsDir": "~/.claude-memento/logs"
+  },
+  "logging": {
+    "level": "INFO",
+    "fileLogging": true,
+    "maxLogFiles": 7
+  },
+  "hooks": {
+    "preSave": [],
+    "postSave": [],
+    "preLoad": [],
+    "postLoad": []
+  },
+  "features": {
+    "contextTracking": true,
+    "autoIndex": true,
+    "searchEnabled": true,
+    "versionControl": false
+  }
+}
