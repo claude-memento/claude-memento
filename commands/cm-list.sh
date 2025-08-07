@@ -6,4 +6,4 @@
 MEMENTO_DIR="$HOME/.claude/memento"
 
 # Execute list command
-"$MEMENTO_DIR/commands/list.sh" "$@"
+"$MEMENTO_DIR/src/commands/list.sh" "$@"

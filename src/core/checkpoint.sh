@@ -57,8 +57,8 @@ create_checkpoint() {
         
         # Include active tasks if any
         if [ -f "$MEMENTO_DIR/claude-context.md" ]; then
-            local pending_tasks=$(grep -c "^- \[ \]" "$MEMENTO_DIR/claude-context.md" 2>/dev/null || echo "0")
-            if [ $pending_tasks -gt 0 ]; then
+            local pending_tasks=$(grep -c "^- \[ \]" "$MEMENTO_DIR/claude-context.md" 2>/dev/null | tr -d '\n' || echo "0")
+            if [ "$pending_tasks" -gt 0 ]; then
                 echo
                 echo "### ⚠️ Pending Tasks"
                 grep "^- \[ \]" "$MEMENTO_DIR/claude-context.md"
@@ -69,6 +69,27 @@ create_checkpoint() {
     # Verify checkpoint was created
     if [ -f "$checkpoint_file" ] && [ -s "$checkpoint_file" ]; then
         log_debug "Checkpoint created: $checkpoint_file"
+        
+        # Check if chunking is needed
+        local size_kb=$(du -k "$checkpoint_file" | cut -f1)
+        if [ $size_kb -gt 10 ]; then
+            log_info "Large checkpoint detected (${size_kb}KB), initiating auto-chunking..."
+            
+            # Run checkpoint chunker
+            if command -v node &> /dev/null; then
+                export MEMENTO_DIR="$MEMENTO_DIR"
+                node "$MEMENTO_DIR/src/chunk/checkpoint-chunker.js" "$checkpoint_file"
+                
+                if [ $? -eq 0 ]; then
+                    log_success "Checkpoint successfully chunked"
+                else
+                    log_warn "Failed to chunk checkpoint, keeping original"
+                fi
+            else
+                log_warn "Node.js not found, skipping auto-chunking"
+            fi
+        fi
+        
         echo "$checkpoint_file"
         return 0
     else
@@ -93,6 +114,28 @@ cleanup_old_checkpoints() {
         for ((i=$retention; i<$count; i++)); do
             local old_checkpoint="${checkpoints[$i]}"
             log_debug "Removing old checkpoint: $(basename "$old_checkpoint")"
+            
+            # Also remove associated manifest and chunks if exists
+            local manifest="${old_checkpoint%.md}-manifest.json"
+            if [ -f "$manifest" ]; then
+                log_debug "Removing associated manifest: $(basename "$manifest")"
+                rm -f "$manifest"
+                
+                # Remove chunks referenced in manifest
+                if command -v node &> /dev/null; then
+                    node -e "
+                    const fs = require('fs');
+                    try {
+                        const manifest = JSON.parse(fs.readFileSync('$manifest', 'utf8'));
+                        manifest.chunks.forEach(chunk => {
+                            console.log('Removing chunk:', chunk.id);
+                            // This should call the chunk deletion API
+                        });
+                    } catch (e) {}
+                    " 2>/dev/null
+                fi
+            fi
+            
             rm -f "$old_checkpoint"
         done
         

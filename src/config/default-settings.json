@@ -1,0 +1,28 @@
+{
+  "autoSave": {
+    "enabled": false,
+    "interval": 900,
+    "onSessionEnd": true,
+    "compression": true,
+    "maxCheckpoints": 10
+  },
+  "chunking": {
+    "enabled": true,
+    "threshold": 10240,
+    "chunkSize": 2000,
+    "overlap": 50
+  },
+  "hooks": {
+    "debug": false,
+    "timeout": 5
+  },
+  "memory": {
+    "maxSize": 1048576,
+    "compression": true
+  },
+  "search": {
+    "method": "tfidf",
+    "maxResults": 20,
+    "minScore": 0.1
+  }
+}

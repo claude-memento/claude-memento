@@ -6,4 +6,4 @@
 MEMENTO_DIR="$HOME/.claude/memento"
 
 # Execute status command
-"$MEMENTO_DIR/commands/status.sh" "$@"
+"$MEMENTO_DIR/src/commands/status.sh" "$@"

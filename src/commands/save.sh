@@ -7,6 +7,8 @@ source "$MEMENTO_DIR/src/utils/common.sh"
 source "$MEMENTO_DIR/src/utils/logger.sh"
 source "$MEMENTO_DIR/src/core/checkpoint.sh"
 source "$MEMENTO_DIR/src/core/hooks.sh"
+source "$MEMENTO_DIR/src/core/memory.sh"
+source "$MEMENTO_DIR/src/core/context-capture.sh"
 
 # Parse arguments
 REASON="${1:-Manual checkpoint}"
@@ -41,6 +43,14 @@ main() {
     checkpoint_file=$(create_checkpoint "$REASON")
     
     if [ $? -eq 0 ] && [ -n "$checkpoint_file" ]; then
+        # Check if content needs chunking
+        local checkpoint_content=$(cat "$checkpoint_file")
+        local checkpoint_id=$(basename "$checkpoint_file" .md)
+        
+        if auto_chunk "$checkpoint_content" "$checkpoint_id"; then
+            log_info "Large checkpoint auto-chunked for efficient storage"
+        fi
+        
         log_success "Checkpoint created: $(basename "$checkpoint_file")"
         
         # Show checkpoint info

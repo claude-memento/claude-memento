@@ -143,10 +143,37 @@ Write-Host "Creating directories..." -ForegroundColor Yellow
 Write-Host "Installing core files..." -ForegroundColor Yellow
 Copy-Item -Path "$ScriptDir\src" -Destination $MementoDir -Recurse -Force
 
-# Copy markdown commands to cm namespace directory
+# Create chunks directory for auto-chunking system
+New-Item -ItemType Directory -Force -Path "$MementoDir\chunks" | Out-Null
+
+# Copy default settings for new features
+if (Test-Path "$ScriptDir\src\config\default-settings.json") {
+    Copy-Item -Path "$ScriptDir\src\config\default-settings.json" -Destination "$MementoDir\config\settings.json" -Force
+}
+
+# Copy command documentation to Claude's command directory
+if (Test-Path "$ScriptDir\commands\cm") {
+    Write-Host "Installing command documentation..." -ForegroundColor Yellow
+    New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\commands\cm" | Out-Null
+    
+    # Copy all .md files
+    Get-ChildItem -Path "$ScriptDir\commands\cm\*.md" | ForEach-Object {
+        Copy-Item -Path $_.FullName -Destination "$env:USERPROFILE\.claude\commands\cm\" -Force
+        Write-Host "  ✓ Installed: $($_.Name)" -ForegroundColor Green
+    }
+}
+
+# Copy markdown commands to cm namespace directory for Claude Code integration
 Write-Host "Installing Claude Code integration commands..." -ForegroundColor Yellow
 if (Test-Path "$ScriptDir\commands\*.md") {
     Copy-Item -Path "$ScriptDir\commands\*.md" -Destination $CMCommandsDir -Force
+}
+
+# Copy wrapper scripts to commands directory
+Write-Host "Installing wrapper scripts..." -ForegroundColor Yellow
+Get-ChildItem -Path "$ScriptDir\commands\cm-*.sh" -ErrorAction SilentlyContinue | ForEach-Object {
+    Copy-Item -Path $_.FullName -Destination $CommandsDir -Force
+    Write-Host "  ✓ Installed: $($_.Name)" -ForegroundColor Green
 }
 
 # Copy template files as memento reference files
@@ -184,8 +211,21 @@ $config | Out-File -FilePath "$MementoDir\config\default.json" -Encoding UTF8
 
 # Add Claude Memento section to CLAUDE.md
 Write-Host "Updating CLAUDE.md..." -ForegroundColor Yellow
-Add-Content -Path "$ClaudeDir\CLAUDE.md" -Value ""
-Get-Content -Path "$ScriptDir\templates\claude-section.md" | Add-Content -Path "$ClaudeDir\CLAUDE.md"
+
+# Check if CLAUDE.md already has Memento section
+$claudeMdContent = Get-Content "$ClaudeDir\CLAUDE.md" -Raw -ErrorAction SilentlyContinue
+if ($claudeMdContent -notmatch [regex]::Escape($BeginMarker)) {
+    Add-Content -Path "$ClaudeDir\CLAUDE.md" -Value ""
+    # Use the enhanced claude-memento-section.md if it exists, otherwise use basic
+    if (Test-Path "$ScriptDir\templates\claude-memento-section.md") {
+        Get-Content -Path "$ScriptDir\templates\claude-memento-section.md" | Add-Content -Path "$ClaudeDir\CLAUDE.md"
+    } else {
+        Get-Content -Path "$ScriptDir\templates\claude-section.md" | Add-Content -Path "$ClaudeDir\CLAUDE.md"
+    }
+    Write-Host "✓ CLAUDE.md updated with Memento commands" -ForegroundColor Green
+} else {
+    Write-Host "⚠ CLAUDE.md already contains Memento section" -ForegroundColor Yellow
+}
 
 # Create hooks configuration
 Write-Host "Creating hooks configuration..." -ForegroundColor Yellow
@@ -200,11 +240,52 @@ $hooks = @'
 '@
 $hooks | Out-File -FilePath "$MementoDir\config\hooks.json" -Encoding UTF8
 
+# Create claude-memento.md for active context tracking
+Write-Host "Creating active context tracker..." -ForegroundColor Yellow
+if (-not (Test-Path "$MementoDir\claude-memento.md")) {
+    # Try to copy template if it exists
+    if (Test-Path "$ScriptDir\templates\claude-memento-template.md") {
+        Copy-Item -Path "$ScriptDir\templates\claude-memento-template.md" -Destination "$MementoDir\claude-memento.md" -Force
+    } else {
+        # Create default content
+        $activeContext = @"
+# Claude Memento - Active Context
+
+**Session ID**: $(Get-Date -Format 'yyyy-MM-dd-HHmm')  
+**Started**: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')  
+**Last Update**: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+
+---
+
+## 📋 Current Tasks
+
+## 🗂️ Working Files
+
+## 💡 Key Decisions
+
+## 🔄 Recent Context
+
+## 📝 Session Notes
+
+---
+
+*This file is automatically updated by Claude Memento*
+"@
+        $activeContext | Out-File -FilePath "$MementoDir\claude-memento.md" -Encoding UTF8
+    }
+    Write-Host "✓ Active context tracker created" -ForegroundColor Green
+}
+
 # Set permissions for shell scripts (if using Git Bash)
 Write-Host "Setting execute permissions..." -ForegroundColor Yellow
 if (Get-Command bash -ErrorAction SilentlyContinue) {
     # Use bash to set permissions for all .sh files
     & bash -c "find '$MementoDir/src' -name '*.sh' -type f -exec chmod +x {} \; 2>/dev/null || true"
+    & bash -c "chmod +x '$MementoDir/src/cli.sh' 2>/dev/null || true"
+    & bash -c "chmod +x '$MementoDir/src/bridge/claude-code-bridge.sh' 2>/dev/null || true"
+    & bash -c "chmod +x '$MementoDir/src/commands/chunk-wrapper.js' 2>/dev/null || true"
+    & bash -c "chmod +x '$MementoDir/src/chunk/'*.js 2>/dev/null || true"
+    & bash -c "chmod +x '$MementoDir/src/hooks/'*.sh 2>/dev/null || true"
     Write-Host "✓ Execute permissions set for shell scripts" -ForegroundColor Green
 } else {
     Write-Host "⚠ Git Bash not found. You may need to manually set execute permissions." -ForegroundColor Yellow
@@ -237,17 +318,26 @@ Write-Host "📦 Full backup created:" -ForegroundColor Blue
 Write-Host "   $FullBackupPath"
 Write-Host ""
 Write-Host "Available commands:"
-Write-Host "  /cm:save    - Create a checkpoint"
-Write-Host "  /cm:load    - Load context from memory"
-Write-Host "  /cm:status  - Show memory status"
-Write-Host "  /cm:last    - Show last checkpoint"
-Write-Host "  /cm:list    - List all checkpoints"
-Write-Host "  /cm:config  - Manage configuration"
-Write-Host "  /cm:hooks   - Manage hooks"
+Write-Host "  /cm:save      - Create a checkpoint (auto-chunks if >10KB)"
+Write-Host "  /cm:load      - Load context (supports smart query loading)"
+Write-Host "  /cm:status    - Show memory status"
+Write-Host "  /cm:last      - Show last checkpoint"
+Write-Host "  /cm:list      - List all checkpoints"
+Write-Host "  /cm:config    - Manage configuration"
+Write-Host "  /cm:hooks     - Manage hooks"
+Write-Host "  /cm:chunk     - Chunk management commands"
+Write-Host "  /cm:auto-save - Configure auto-save settings"
 Write-Host ""
 Write-Host "Configuration: $MementoDir\config\"
 Write-Host "Checkpoints:  $MementoDir\checkpoints\"
 Write-Host "Reference:    $MementoDir\MEMENTO.md"
+Write-Host ""
+Write-Host "New Features:"
+Write-Host "  ✅ Auto-chunking for large contexts (>10KB)"
+Write-Host "  ✅ Smart query-based loading"
+Write-Host "  ✅ Auto-save on session end"
+Write-Host "  ✅ Timer-based auto-save (configurable)"
+Write-Host "  ✅ TF-IDF powered search"
 Write-Host ""
 Write-Host "To uninstall: .\uninstall.ps1"
 Write-Host "To uninstall and keep data: .\uninstall.ps1 -KeepData"

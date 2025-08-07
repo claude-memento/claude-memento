@@ -6,4 +6,4 @@
 MEMENTO_DIR="$HOME/.claude/memento"
 
 # Execute last command
-"$MEMENTO_DIR/commands/last.sh" "$@"
+"$MEMENTO_DIR/src/commands/last.sh" "$@"

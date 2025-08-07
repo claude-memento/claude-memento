@@ -44,9 +44,17 @@ execute_command() {
         "last")
             "$COMMANDS_DIR/last.sh" $args
             ;;
+        "chunk")
+            # Execute Node.js chunk command
+            export MEMENTO_DIR="$MEMENTO_DIR"
+            node "$COMMANDS_DIR/chunk-wrapper.js" $args
+            ;;
+        "auto-save")
+            "$COMMANDS_DIR/auto-save.sh" $args
+            ;;
         *)
             echo "Unknown command: $cmd"
-            echo "Available commands: save, load, list, status, config, hooks, last"
+            echo "Available commands: save, load, list, status, config, hooks, last, chunk, auto-save"
             exit 1
             ;;
     esac

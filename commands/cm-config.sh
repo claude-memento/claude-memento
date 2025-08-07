@@ -6,4 +6,4 @@
 MEMENTO_DIR="$HOME/.claude/memento"
 
 # Execute config command
-"$MEMENTO_DIR/commands/config.sh" "$@"
+"$MEMENTO_DIR/src/commands/config.sh" "$@"

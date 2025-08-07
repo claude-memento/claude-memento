@@ -62,11 +62,13 @@ Claude Memento addresses the context loss problem in Claude Code by providing:
 
 ## Installation 📦
 
-Claude Memento installs with a single script.
+Claude Memento installs with a single script and creates automatic backups.
 
 ### Prerequisites
 - Claude Code installed (or `~/.claude/` directory exists)
 - Bash environment (Git Bash, WSL, or PowerShell on Windows)
+- Node.js (for graph database and vectorization features)
+- jq (for JSON processing - auto-installed if missing)
 
 ### Quick Install
 
@@ -77,8 +79,8 @@ git clone https://github.com/claude-memento/claude-memento.git
 cd claude-memento
 ./install.sh
 
-# Verify in Claude Code
-# /cm:status
+# Verify installation
+/cm:status
 ```
 
 **Windows (PowerShell):**
@@ -101,6 +103,13 @@ git clone https://github.com/claude-memento/claude-memento.git
 cd claude-memento
 ./install.sh
 ```
+
+### Installation Features
+- ✅ **Automatic Backup**: Creates complete backup before installation
+- ✅ **Non-destructive**: Preserves existing CLAUDE.md content
+- ✅ **Cross-platform**: Works on macOS, Linux, Windows
+- ✅ **Dependency Check**: Validates and installs missing dependencies
+- ✅ **Rollback Ready**: Easy restoration if needed
 
 ## How It Works 🔄
 
@@ -162,29 +171,46 @@ Restored Session
 
 ## Configuration 🔧
 
-Default configuration (`~/.claude/memento/config/default.json`):
+### Settings Structure (`~/.claude/memento/config/settings.json`)
+
 ```json
 {
-  "checkpoint": {
-    "retention": 10,
-    "auto_save": true,
-    "interval": 900,
-    "strategy": "full"
+  "autoSave": {
+    "enabled": true,        // Boolean: Auto-save activation
+    "interval": 60,         // Number: Save interval in seconds
+    "onSessionEnd": true    // Boolean: Save on session end
+  },
+  "chunking": {
+    "enabled": true,        // Boolean: Chunk system activation
+    "threshold": 10240,     // Number: Chunking threshold (bytes)
+    "chunkSize": 2000,      // Number: Individual chunk size
+    "overlap": 50           // Number: Overlap between chunks
   },
   "memory": {
-    "max_size": "10MB",
-    "compression": true,
-    "format": "markdown"
+    "maxSize": 1048576,     // Number: Maximum memory usage
+    "compression": true     // Boolean: Enable compression
   },
-  "session": {
-    "timeout": 300,
-    "auto_restore": true
-  },
-  "integration": {
-    "superclaude": true,
-    "command_prefix": "cm:"
+  "search": {
+    "method": "tfidf",      // String: Search method (tfidf/simple)
+    "maxResults": 20,       // Number: Max search results
+    "minScore": 0.1         // Number: Minimum similarity score
   }
 }
+```
+
+**⚠️ Important**: Use actual boolean/number types, not strings (`true` not `"true"`).
+
+### Configuration Commands
+```bash
+# View current settings
+/cm:config
+
+# Enable auto-save with 60-second interval
+/cm:auto-save enable
+/cm:auto-save config interval 60
+
+# Check system status
+/cm:status
 ```
 
 ## Project Structure 📁
@@ -192,60 +218,153 @@ Default configuration (`~/.claude/memento/config/default.json`):
 ```
 claude-memento/
 ├── src/
-│   ├── core/          # Core memory management
 │   ├── commands/      # Command implementations
-│   ├── utils/         # Utilities and helpers
+│   ├── core/          # Core memory management
+│   ├── chunk/         # Graph DB & chunking system
+│   ├── config/        # Configuration management
+│   ├── hooks/         # Hook system
 │   └── bridge/        # Claude Code integration
-├── templates/         # Configuration templates
-├── commands/          # Command definitions
+├── commands/cm/       # Command definitions
+├── test/             # Test scripts
 ├── docs/             # Documentation
 └── examples/         # Usage examples
+
+Runtime Structure (~/.claude/memento/):
+├── checkpoints/      # Saved checkpoints
+├── chunks/           # Graph DB & chunk storage
+├── config/           # Runtime configuration
+└── src/              # Installed system files
 ```
+
+## Advanced Features 🚀
+
+### Graph Database System
+Claude Memento includes an advanced graph-based chunk management system:
+
+- **TF-IDF Vectorization**: Semantic similarity search
+- **Graph Relationships**: Automatic content relationship discovery
+- **Smart Loading**: Query-based selective context restoration
+- **Performance**: Sub-50ms search times
+
+### Chunk Management
+```bash
+# Search chunks by keyword
+/cm:chunk search "API implementation"
+
+# List all chunks
+/cm:chunk list
+
+# Build semantic relationships
+/cm:chunk build-relations
+
+# Get system statistics
+/cm:chunk stats
+```
+
+## Uninstallation 🗑️
+
+### Safe Removal Options
+
+Claude Memento provides comprehensive uninstallation with data preservation options:
+
+**Complete Removal:**
+```bash
+# Remove everything (PERMANENT DATA DELETION)
+./uninstall.sh
+```
+
+**Preserve Data:**
+```bash
+# Keep checkpoints and chunks
+./uninstall.sh --keep-data
+
+# PowerShell equivalent
+.\uninstall.ps1 -KeepData
+```
+
+**Force Mode (Skip Confirmations):**
+```bash
+# Automated removal
+./uninstall.sh --force
+
+# With data preservation
+./uninstall.sh --keep-data --force
+```
+
+### What Gets Removed
+- ✅ **Running Processes**: Automatically stopped with graceful shutdown
+- ✅ **Claude Memento Section**: Removed from CLAUDE.md (file preserved)
+- ✅ **Command Files**: All `/cm:` commands removed
+- ✅ **Installation Files**: Complete system cleanup
+- ✅ **Temporary Files**: PID files and caches cleared
+
+### Data Preservation
+When using `--keep-data`:
+- Checkpoints backed up to `~/claude-memento-backup-[timestamp]/`
+- Configuration files preserved
+- Graph database and chunks maintained
+- Active context files saved
 
 ## Troubleshooting 🔍
 
-### Common Issues
+### Installation Issues
 
 **Commands not working:**
 ```bash
-# Check if commands are installed
-ls ~/.claude/commands/cm/
-
-# Verify status command
+# Check installation
 /cm:status
+
+# Verify command files
+ls ~/.claude/commands/cm/
 ```
 
-**Installation fails:**
+**Auto-save not working:**
 ```bash
-# Check permissions
-chmod +x install.sh
-./install.sh --verbose
+# Check configuration
+/cm:auto-save status
+
+# Enable if needed
+/cm:auto-save enable
+/cm:auto-save config interval 60
 ```
 
-**Memory load errors:**
+**Graph system errors:**
 ```bash
-# Verify checkpoint integrity
-/cm:status --check
-# Repair if needed
-./src/utils/repair.sh
+# Run system tests
+cd ~/.claude/memento/test/
+./test-chunk-system.sh
+
+# Check Node.js installation
+node --version
 ```
 
-**Path structure issues after installation:**
+### Performance Issues
+
+**Slow search:**
 ```bash
-# If commands fail with "file not found" errors
-# This might be due to incorrect installation
-# Reinstall with the updated script:
-./uninstall.sh && ./install.sh
+# Rebuild search index
+/cm:chunk build-relations
+
+# Check system performance
+/cm:status --verbose
 ```
 
-**Permission errors:**
-```bash
-# If you get "permission denied" errors
-# Check file permissions
-ls -la ~/.claude/memento/src/**/*.sh
+### Recovery Options
 
-# Manually fix permissions if needed
-find ~/.claude/memento/src -name "*.sh" -type f -exec chmod +x {} \;
+**Restore from backup:**
+```bash
+# List available backups
+ls ~/.claude_backup_*/
+
+# Run restore script
+~/.claude_backup_[timestamp]/restore.sh
+```
+
+**Reset configuration:**
+```bash
+# Reset to defaults
+rm ~/.claude/memento/config/settings.json
+/cm:status  # Will recreate defaults
 ```
 
 ## Contributing 🤝
@@ -261,15 +380,22 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 ## Roadmap 🗺️
 
 **Version 1.1:**
-- [ ] Cloud backup support
-- [ ] Multiple profile management
-- [ ] Real-time sync capability
+- [ ] Web interface for chunk visualization
+- [ ] Advanced search filters and queries  
+- [ ] Multi-language content support
 
 **Version 2.0:**
-- [ ] Web UI dashboard
+- [ ] Cloud backup integration
 - [ ] Team collaboration features
-- [ ] Advanced search and filtering
+- [ ] Advanced analytics dashboard
 - [ ] Integration with other AI tools
+
+**Recent Updates (v1.0.1):**
+- ✅ Enhanced uninstall scripts with process management
+- ✅ Improved configuration system with proper data types
+- ✅ Graph database system with semantic search
+- ✅ Auto-save functionality with background daemon
+- ✅ Comprehensive test suite with performance validation
 
 ## FAQ ❓
 

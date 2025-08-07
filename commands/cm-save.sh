@@ -6,4 +6,4 @@
 MEMENTO_DIR="$HOME/.claude/memento"
 
 # Execute save command
-"$MEMENTO_DIR/commands/save.sh" "$@"
+"$MEMENTO_DIR/src/commands/save.sh" "$@"

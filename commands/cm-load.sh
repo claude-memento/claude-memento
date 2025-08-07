@@ -6,4 +6,4 @@
 MEMENTO_DIR="$HOME/.claude/memento"
 
 # Execute load command
-"$MEMENTO_DIR/commands/load.sh" "$@"
+"$MEMENTO_DIR/src/commands/load.sh" "$@"

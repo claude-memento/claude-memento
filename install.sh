@@ -162,9 +162,49 @@ mkdir -p "$CM_COMMANDS_DIR"
 echo -e "${YELLOW}Installing core files...${NC}"
 cp -r src "$MEMENTO_DIR/"
 
+# Copy test directory for system verification
+if [ -d "$SCRIPT_DIR/test" ]; then
+    echo -e "${YELLOW}Installing test suite...${NC}"
+    cp -r "$SCRIPT_DIR/test" "$MEMENTO_DIR/"
+    chmod +x "$MEMENTO_DIR/test/"*.sh 2>/dev/null || true
+    echo -e "${GREEN}✓ Test suite installed${NC}"
+fi
+
+# Create chunks directory for auto-chunking system
+mkdir -p "$MEMENTO_DIR/chunks"
+
+# Copy default settings for new features
+if [ -f "$SCRIPT_DIR/src/config/default-settings.json" ]; then
+    cp "$SCRIPT_DIR/src/config/default-settings.json" "$MEMENTO_DIR/config/settings.json"
+fi
+
+# Copy command documentation to Claude's command directory
+if [ -d "$SCRIPT_DIR/commands/cm" ]; then
+    echo -e "${YELLOW}Installing command documentation...${NC}"
+    mkdir -p "$HOME/.claude/commands/cm"
+    
+    # Copy all .md files
+    for md_file in "$SCRIPT_DIR/commands/cm/"*.md; do
+        if [ -f "$md_file" ]; then
+            cp "$md_file" "$HOME/.claude/commands/cm/"
+            echo -e "  ${GREEN}✓${NC} Installed: $(basename "$md_file")"
+        fi
+    done
+fi
+
 # Copy markdown commands to cm namespace directory for Claude Code integration
 echo -e "${YELLOW}Installing Claude Code integration commands...${NC}"
 cp commands/*.md "$CM_COMMANDS_DIR/" 2>/dev/null || true
+
+# Copy wrapper scripts to commands directory
+echo -e "${YELLOW}Installing wrapper scripts...${NC}"
+for wrapper in commands/cm-*.sh; do
+    if [ -f "$wrapper" ]; then
+        cp "$wrapper" "$COMMANDS_DIR/"
+        chmod +x "$COMMANDS_DIR/$(basename "$wrapper")"
+        echo -e "  ${GREEN}✓${NC} Installed: $(basename "$wrapper")"
+    fi
+done
 
 # Copy template files as memento reference files
 echo -e "${YELLOW}Installing reference documentation...${NC}"
@@ -202,8 +242,50 @@ EOF
 
 # Add Claude Memento section to CLAUDE.md
 echo -e "${YELLOW}Updating CLAUDE.md...${NC}"
-echo "" >> "$CLAUDE_DIR/CLAUDE.md"
-cat "$SCRIPT_DIR/templates/claude-section.md" >> "$CLAUDE_DIR/CLAUDE.md"
+
+# Check if CLAUDE.md already has Memento section
+if ! grep -q "$BEGIN_MARKER" "$CLAUDE_DIR/CLAUDE.md" 2>/dev/null; then
+    echo "" >> "$CLAUDE_DIR/CLAUDE.md"
+    # Use the enhanced claude-memento-section.md if it exists, otherwise use basic
+    if [ -f "$SCRIPT_DIR/templates/claude-memento-section.md" ]; then
+        cat "$SCRIPT_DIR/templates/claude-memento-section.md" >> "$CLAUDE_DIR/CLAUDE.md"
+    else
+        cat "$SCRIPT_DIR/templates/claude-section.md" >> "$CLAUDE_DIR/CLAUDE.md"
+    fi
+    echo -e "${GREEN}✓ CLAUDE.md updated with Memento commands${NC}"
+else
+    echo -e "${YELLOW}⚠ CLAUDE.md already contains Memento section${NC}"
+fi
+
+# Create claude-memento.md for active context tracking
+echo -e "${YELLOW}Creating active context tracker...${NC}"
+if [ ! -f "$MEMENTO_DIR/claude-memento.md" ]; then
+    cp "$SCRIPT_DIR/templates/claude-memento-template.md" "$MEMENTO_DIR/claude-memento.md" 2>/dev/null || \
+    cat > "$MEMENTO_DIR/claude-memento.md" << 'EOF'
+# Claude Memento - Active Context
+
+**Session ID**: $(date '+%Y-%m-%d-%H%M')  
+**Started**: $(date '+%Y-%m-%d %H:%M:%S')  
+**Last Update**: $(date '+%Y-%m-%d %H:%M:%S')
+
+---
+
+## 📋 Current Tasks
+
+## 🗂️ Working Files
+
+## 💡 Key Decisions
+
+## 🔄 Recent Context
+
+## 📝 Session Notes
+
+---
+
+*This file is automatically updated by Claude Memento*
+EOF
+    echo -e "${GREEN}✓ Active context tracker created${NC}"
+fi
 
 # Create hooks configuration
 echo -e "${YELLOW}Creating hooks configuration...${NC}"
@@ -224,6 +306,11 @@ find "$MEMENTO_DIR/src" -name "*.sh" -type f -exec chmod +x {} \; 2>/dev/null ||
 chmod +x "$MEMENTO_DIR/src/cli.sh" 2>/dev/null || true
 # Make bridge script executable
 chmod +x "$MEMENTO_DIR/src/bridge/claude-code-bridge.sh" 2>/dev/null || true
+# Make Node.js scripts executable
+chmod +x "$MEMENTO_DIR/src/commands/chunk-wrapper.js" 2>/dev/null || true
+chmod +x "$MEMENTO_DIR/src/chunk/"*.js 2>/dev/null || true
+# Make hook scripts executable
+chmod +x "$MEMENTO_DIR/src/hooks/"*.sh 2>/dev/null || true
 
 # Create installation log
 echo -e "${YELLOW}Creating installation log...${NC}"
@@ -243,17 +330,30 @@ echo -e "${BLUE}📦 Full backup created:${NC}"
 echo "   $FULL_BACKUP_PATH"
 echo ""
 echo "Available commands:"
-echo "  /cm:save    - Create a checkpoint"
-echo "  /cm:load    - Load context from memory"
-echo "  /cm:status  - Show memory status"
-echo "  /cm:last    - Show last checkpoint"
-echo "  /cm:list    - List all checkpoints"
-echo "  /cm:config  - Manage configuration"
-echo "  /cm:hooks   - Manage hooks"
+echo "  /cm:save      - Create a checkpoint (auto-chunks if >10KB)"
+echo "  /cm:load      - Load context (supports smart query loading)"
+echo "  /cm:status    - Show memory status"
+echo "  /cm:last      - Show last checkpoint"
+echo "  /cm:list      - List all checkpoints"
+echo "  /cm:config    - Manage configuration"
+echo "  /cm:hooks     - Manage hooks"
+echo "  /cm:chunk     - Chunk management commands"
+echo "  /cm:auto-save - Configure auto-save settings"
 echo ""
 echo "Configuration: $MEMENTO_DIR/config/"
 echo "Checkpoints:  $MEMENTO_DIR/checkpoints/"
+echo "Chunks:       $MEMENTO_DIR/chunks/"
 echo "Reference:    $MEMENTO_DIR/MEMENTO.md"
+echo "Test Suite:   $MEMENTO_DIR/test/test-chunk-system.sh"
+echo ""
+echo "New Features:"
+echo "  ✅ Auto-chunking for large contexts (>10KB)"
+echo "  ✅ Smart query-based loading with graph expansion"
+echo "  ✅ Relationship-based context discovery"
+echo "  ✅ Auto-save on session end"
+echo "  ✅ Timer-based auto-save (configurable)"
+echo "  ✅ TF-IDF powered search with semantic relations"
+echo "  ✅ Graph database for chunk relationships"
 echo ""
 echo "To uninstall: ./uninstall.sh"
 echo "To uninstall and keep data: ./uninstall.sh --keep-data"
