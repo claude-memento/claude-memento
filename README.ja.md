@@ -1,4 +1,4 @@
-# Claude Memento v1.0 🧠
+# Claude Memento v1.0.1 🧠
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub issues](https://img.shields.io/github/issues/claude-memento/claude-memento)](https://github.com/claude-memento/claude-memento/issues)
@@ -67,6 +67,8 @@ Claude Mementoは単一のスクリプトでインストールできます。
 ### 前提条件
 - Claude Codeがインストール済み（または `~/.claude/` ディレクトリが存在）
 - Bash環境（WindowsではGit Bash、WSL、またはPowerShell）
+- Node.js（グラフデータベースとベクトル化機能用）
+- jq（JSON処理用 - 不足している場合は自動インストール）
 
 ### クイックインストール
 
@@ -77,8 +79,8 @@ git clone https://github.com/claude-memento/claude-memento.git
 cd claude-memento
 ./install.sh
 
-# Claude Codeで確認
-# /cm:status
+# インストールの確認
+/cm:status
 ```
 
 **Windows (PowerShell):**
@@ -101,6 +103,13 @@ git clone https://github.com/claude-memento/claude-memento.git
 cd claude-memento
 ./install.sh
 ```
+
+### インストール機能
+- ✅ **自動バックアップ**: インストール前に完全なバックアップを作成
+- ✅ **非破壊的**: 既存のCLAUDE.mdコンテンツを保持
+- ✅ **クロスプラットフォーム**: macOS、Linux、Windowsで動作
+- ✅ **依存関係チェック**: 不足している依存関係を検証・インストール
+- ✅ **ロールバック対応**: 必要に応じて簡単に復元可能
 
 ## 動作原理 🔄
 
@@ -162,29 +171,46 @@ Claude Codeセッション
 
 ## 設定 🔧
 
-デフォルト設定（`~/.claude/memento/config/default.json`）:
+### 設定構造（`~/.claude/memento/config/settings.json`）
+
 ```json
 {
-  "checkpoint": {
-    "retention": 10,
-    "auto_save": true,
-    "interval": 900,
-    "strategy": "full"
+  "autoSave": {
+    "enabled": true,        // Boolean: 自動保存の有効化
+    "interval": 60,         // Number: 保存間隔（秒）
+    "onSessionEnd": true    // Boolean: セッション終了時の保存
+  },
+  "chunking": {
+    "enabled": true,        // Boolean: チャンクシステムの有効化
+    "threshold": 10240,     // Number: チャンク化の閾値（バイト）
+    "chunkSize": 2000,      // Number: 個別チャンクサイズ
+    "overlap": 50           // Number: チャンク間のオーバーラップ
   },
   "memory": {
-    "max_size": "10MB",
-    "compression": true,
-    "format": "markdown"
+    "maxSize": 1048576,     // Number: 最大メモリ使用量
+    "compression": true     // Boolean: 圧縮を有効化
   },
-  "session": {
-    "timeout": 300,
-    "auto_restore": true
-  },
-  "integration": {
-    "superclaude": true,
-    "command_prefix": "cm:"
+  "search": {
+    "method": "tfidf",      // String: 検索方法（tfidf/simple）
+    "maxResults": 20,       // Number: 最大検索結果数
+    "minScore": 0.1         // Number: 最小類似度スコア
   }
 }
+```
+
+**⚠️ 重要**: 実際のboolean/number型を使用してください（`"true"`ではなく`true`）。
+
+### 設定コマンド
+```bash
+# 現在の設定を表示
+/cm:config
+
+# 60秒間隔で自動保存を有効化
+/cm:auto-save enable
+/cm:auto-save config interval 60
+
+# システムステータスを確認
+/cm:status
 ```
 
 ## プロジェクト構造 📁
@@ -192,60 +218,151 @@ Claude Codeセッション
 ```
 claude-memento/
 ├── src/
-│   ├── core/          # コアメモリ管理
 │   ├── commands/      # コマンド実装
-│   ├── utils/         # ユーティリティとヘルパー
+│   ├── core/          # コアメモリ管理
+│   ├── chunk/         # グラフDB & チャンク化システム
+│   ├── config/        # 設定管理
+│   ├── hooks/         # フックシステム
 │   └── bridge/        # Claude Code統合
-├── templates/         # 設定テンプレート
-├── commands/          # コマンド定義
+├── commands/cm/       # コマンド定義
+├── test/             # テストスクリプト
 ├── docs/             # ドキュメント
 └── examples/         # 使用例
+
+実行時構造（~/.claude/memento/）:
+├── checkpoints/      # 保存されたチェックポイント
+├── chunks/           # グラフDB & チャンクストレージ
+├── config/           # 実行時設定
+└── src/              # インストール済みシステムファイル
 ```
+
+## 高度な機能 🚀
+
+### グラフデータベースシステム
+Claude Mementoには高度なグラフベースのチャンク管理システムが含まれています：
+
+- **TF-IDFベクトル化**: セマンティック類似検索
+- **グラフ関係性**: 自動コンテンツ関係性発見
+- **スマートローディング**: クエリベースの選択的コンテキスト復元
+- **パフォーマンス**: 50ms以下の検索時間
+
+### チャンク管理
+```bash
+# キーワードでチャンクを検索
+/cm:chunk search "API実装"
+
+# すべてのチャンクをリスト
+/cm:chunk list
+
+# セマンティック関係性を構築
+/cm:chunk build-relations
+
+# システム統計を取得
+/cm:chunk stats
+```
+
+## アンインストール 🗑️
+
+### 安全な削除オプション
+
+Claude Mementoはデータ保持オプション付きの包括的なアンインストールを提供します：
+
+**完全削除：**
+```bash
+# すべてを削除（永続的データ削除）
+./uninstall.sh
+```
+
+**データ保持：**
+```bash
+# チェックポイントとチャンクを保持
+./uninstall.sh --keep-data
+
+# PowerShell版
+.\uninstall.ps1 -KeepData
+```
+
+**強制モード（確認をスキップ）：**
+```bash
+# 自動削除
+./uninstall.sh --force
+
+# データ保持付き
+./uninstall.sh --keep-data --force
+```
+
+### 削除される内容
+- ✅ **実行中プロセス**: グレースフルシャットダウンで自動停止
+- ✅ **Claude Mementoセクション**: CLAUDE.mdから削除（ファイルは保持）
+- ✅ **コマンドファイル**: すべての`/cm:`コマンドを削除
+- ✅ **インストールファイル**: システムの完全クリーンアップ
+- ✅ **一時ファイル**: PIDファイルとキャッシュをクリア
+
+### データ保持
+`--keep-data`使用時：
+- チェックポイントを`~/claude-memento-backup-[タイムスタンプ]/`にバックアップ
+- 設定ファイルを保持
+- グラフデータベースとチャンクを維持
+- アクティブコンテキストファイルを保存
 
 ## トラブルシューティング 🔍
 
-### よくある問題
-
 **コマンドが動作しない:**
 ```bash
-# コマンドがインストールされているか確認
-ls ~/.claude/commands/cm/
-
-# ステータスコマンドを確認
+# インストールを確認
 /cm:status
+
+# コマンドファイルを確認
+ls ~/.claude/commands/cm/
 ```
 
-**インストールが失敗する:**
+**自動保存が動作しない:**
 ```bash
-# 権限を確認
-chmod +x install.sh
-./install.sh --verbose
+# 設定を確認
+/cm:auto-save status
+
+# 必要に応じて有効化
+/cm:auto-save enable
+/cm:auto-save config interval 60
 ```
 
-**メモリロードエラー:**
+**グラフシステムエラー:**
 ```bash
-# チェックポイントの整合性を確認
-/cm:status --check
-# 必要に応じて修復
-./src/utils/repair.sh
+# システムテストを実行
+cd ~/.claude/memento/test/
+./test-chunk-system.sh
+
+# Node.jsインストールを確認
+node --version
 ```
 
-**インストール後のパス構造の問題:**
+### パフォーマンス問題
+
+**検索が遅い:**
 ```bash
-# "file not found"エラーでコマンドが失敗する場合
-# これは不正なインストールが原因の可能性があります
-# 更新されたスクリプトで再インストール:
-./uninstall.sh && ./install.sh
+# 検索インデックスを再構築
+/cm:chunk build-relations
+
+# システムパフォーマンスを確認
+/cm:status --verbose
 ```
 
-**権限エラー:**
-```bash
-# "permission denied"エラーが発生する場合
-# ファイル権限を確認
-ls -la ~/.claude/memento/src/**/*.sh
+### 復旧オプション
 
-# 必要に応じて手動で権限を修正
-find ~/.claude/memento/src -name "*.sh" -type f -exec chmod +x {} \;
+**バックアップから復元:**
+```bash
+# 利用可能なバックアップをリスト
+ls ~/.claude_backup_*/
+
+# 復元スクリプトを実行
+~/.claude_backup_[タイムスタンプ]/restore.sh
+```
+
+**設定をリセット:**
+```bash
+# デフォルトにリセット
+rm ~/.claude/memento/config/settings.json
+/cm:status  # デフォルトが再作成されます
 ```
 
 ## 貢献 🤝
@@ -261,15 +378,22 @@ find ~/.claude/memento/src -name "*.sh" -type f -exec chmod +x {} \;
 ## ロードマップ 🗺️
 
 **バージョン 1.1:**
-- [ ] クラウドバックアップサポート
-- [ ] 複数プロファイル管理
-- [ ] リアルタイム同期機能
+- [ ] チャンク可視化のためのWebインターフェース
+- [ ] 高度な検索フィルターとクエリ
+- [ ] 多言語コンテンツサポート
 
 **バージョン 2.0:**
-- [ ] Web UIダッシュボード
+- [ ] クラウドバックアップ統合
 - [ ] チームコラボレーション機能
-- [ ] 高度な検索とフィルタリング
+- [ ] 高度な分析ダッシュボード
 - [ ] 他のAIツールとの統合
+
+**最近のアップデート（v1.0.1）:**
+- ✅ プロセス管理付きアンインストールスクリプトの強化
+- ✅ 適切なデータ型を持つ設定システムの改善
+- ✅ セマンティック検索機能付きグラフデータベースシステム
+- ✅ バックグラウンドデーモン付き自動保存機能
+- ✅ パフォーマンス検証付き包括的テストスイート
 
 ## FAQ ❓
 
