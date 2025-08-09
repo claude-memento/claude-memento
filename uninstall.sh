@@ -87,39 +87,52 @@ check_installation() {
 # Function to remove from CLAUDE.md
 remove_from_claude_md() {
     if [ -f "$CLAUDE_DIR/CLAUDE.md" ]; then
-        echo -e "${YELLOW}Removing Claude Memento section from CLAUDE.md...${NC}"
+        echo -e "${YELLOW}Removing Claude Memento section(s) from CLAUDE.md...${NC}"
         
         # Create backup before modification
         cp "$CLAUDE_DIR/CLAUDE.md" "$CLAUDE_DIR/CLAUDE.md.uninstall.backup"
         
-        # Remove only the Claude Memento section between markers
-        # First, remove the section including the blank line before it
-        awk '
-        BEGIN { in_section = 0; blank_before = 0 }
-        /^$/ { blank_before = 1; blank_line = $0; next }
-        /<!-- BEGIN_CLAUDE_MEMENTO -->/ { 
-            in_section = 1
-            blank_before = 0
-            next
-        }
-        /<!-- END_CLAUDE_MEMENTO -->/ { 
-            in_section = 0
-            next
-        }
-        !in_section { 
-            if (blank_before) {
-                print blank_line
+        local temp_file="$CLAUDE_DIR/CLAUDE.md.uninstall.tmp"
+        local removed_count=0
+        
+        # Remove ALL existing Claude Memento sections (handle multiple sections)
+        while grep -q "$BEGIN_MARKER" "$CLAUDE_DIR/CLAUDE.md" 2>/dev/null; do
+            awk '
+            BEGIN { in_section = 0; blank_before = 0 }
+            /^$/ { blank_before = 1; blank_line = $0; next }
+            /<!-- BEGIN_CLAUDE_MEMENTO -->/ { 
+                in_section = 1
                 blank_before = 0
+                next
             }
-            print
-        }
-        ' "$CLAUDE_DIR/CLAUDE.md" > "$CLAUDE_DIR/CLAUDE.md.tmp"
+            /<!-- END_CLAUDE_MEMENTO -->/ { 
+                in_section = 0
+                next
+            }
+            !in_section { 
+                if (blank_before) {
+                    print blank_line
+                    blank_before = 0
+                }
+                print
+            }
+            ' "$CLAUDE_DIR/CLAUDE.md" > "$temp_file"
+            
+            mv "$temp_file" "$CLAUDE_DIR/CLAUDE.md"
+            removed_count=$((removed_count + 1))
+            
+            # Safety check to prevent infinite loop
+            if [ $removed_count -gt 20 ]; then
+                echo -e "${RED}Warning: Removed $removed_count Claude Memento sections. Stopping to prevent infinite loop.${NC}"
+                break
+            fi
+        done
         
-        mv "$CLAUDE_DIR/CLAUDE.md.tmp" "$CLAUDE_DIR/CLAUDE.md"
-        
-        # No need to clean up temp file as we moved it
-        
-        echo -e "${GREEN}✓ Removed Claude Memento section from CLAUDE.md${NC}"
+        if [ $removed_count -gt 0 ]; then
+            echo -e "${GREEN}✓ Removed $removed_count Claude Memento section(s) from CLAUDE.md${NC}"
+        else
+            echo -e "${YELLOW}ℹ️  No Claude Memento sections found in CLAUDE.md${NC}"
+        fi
     fi
 }
 
