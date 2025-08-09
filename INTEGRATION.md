@@ -68,6 +68,38 @@ cp config/default.json ~/.claude/memento/config/
 2. **래퍼 스크립트**: `~/.claude/commands/cm-*.sh`
 3. **실제 구현**: `~/.claude/memento/commands/*.sh`
 
+## 🤖 에이전트 통합
+
+Claude Memento는 Context-Manager-Memento 에이전트를 포함하여 향상된 컨텍스트 관리를 제공합니다.
+
+### 에이전트 자동 설치
+```bash
+# 설치 과정에서 자동으로 에이전트 파일이 복사됩니다
+~/.claude/agents/context-manager-memento.md
+```
+
+### 에이전트 기능
+- **자동 컨텍스트 관리**: 세션 간 지능적 컨텍스트 보존
+- **스마트 청킹**: 대용량 컨텍스트(10K+ 토큰)의 효율적 처리
+- **멀티 에이전트 조정**: 전문 에이전트 간의 원활한 작업 전환
+- **성능 최적화**: 40-60% 토큰 사용량 감소
+
+### SuperClaude와의 통합
+- **자동 활성화**: 복잡한 프로젝트에서 자동 선택
+- **컨텍스트 연속성**: 긴 개발 세션에서 자동 체크포인트
+- **지능형 압축**: SuperClaude 설정을 고려한 압축 전략
+
+### 에이전트 설정
+```markdown
+# ~/.claude/CLAUDE.md에 추가
+## Context Management Agent
+
+context-manager-memento 에이전트가 활성화되어 있습니다:
+- 자동 컨텍스트 저장 및 복원
+- 스마트 토큰 최적화
+- 멀티 에이전트 협업 지원
+```
+
 ## 📝 SuperClaude 설정 추가
 
 ### CLAUDE.md 수정

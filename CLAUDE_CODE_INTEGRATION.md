@@ -33,6 +33,41 @@ Claude Memento는 Claude Code와 완전히 통합되어 `/cm:` 네임스페이�
 - `/cm:config` - 설정 관리
 - `/cm:hooks` - 훅 시스템 관리
 
+## 🤖 에이전트 지원
+
+Claude Code는 Context-Manager-Memento 에이전트를 통해 향상된 컨텍스트 관리를 지원합니다.
+
+### 에이전트 설치 위치
+```
+~/.claude/agents/context-manager-memento.md
+```
+
+### 에이전트 핵심 기능
+- **자동 컨텍스트 캡처**: Claude Code 세션 중 실시간 컨텍스트 모니터링
+- **스마트 청킹**: 10K+ 토큰 컨텍스트의 자동 분할 및 관계 추적
+- **멀티 에이전트 조정**: 다른 에이전트와의 컨텍스트 공유 및 핸드오프
+- **지능형 압축**: 30-50% 토큰 감소로 성능 최적화
+
+### 에이전트 명령어
+```bash
+# 컨텍스트 관리
+/cm:save "Feature implementation complete"
+/cm:chunk search "authentication logic"
+/cm:chunk graph --depth 2
+
+# 자동 설정
+/cm:config auto-save.interval 15
+/cm:config checkpoint.compress true
+```
+
+### 에이전트 장점
+- **토큰 효율성**: 스마트 로딩으로 40-60% 토큰 사용량 감소  
+- **세션 연속성**: 자동 체크포인트로 작업 중단 없음
+- **에이전트 협업**: 복잡한 다단계 작업에서 효율적 컨텍스트 전달
+- **성능 향상**: 지능형 캐싱과 압축으로 응답 속도 개선
+
+자세한 사용법은 [에이전트 사용 가이드](docs/AGENT_USAGE.md)를 참조하세요.
+
 ## 🔧 설치 후 확인
 
 ```bash

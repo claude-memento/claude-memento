@@ -60,6 +60,40 @@ Claude Memento addresses the context loss problem in Claude Code by providing:
 - **Full System Backup**: Creates complete backup of ~/.claude directory before installation
 - **Easy Restoration**: One-command restore script included with backups
 
+## Claude Code Agent Integration 🤖
+
+Claude Memento includes the **Context-Manager-Memento** agent for enhanced context management across multiple agent interactions.
+
+### Agent Features
+- **Automatic Context Capture**: Real-time monitoring and checkpoint creation
+- **Smart Chunking**: Handles contexts >10K tokens with semantic boundary detection
+- **Multi-Agent Coordination**: Seamless handoffs between specialized agents
+- **Intelligent Compression**: 30-50% token reduction while preserving accuracy
+
+### Quick Agent Commands
+```bash
+# Core operations
+/cm:save "Project milestone complete"
+/cm:load checkpoint-id
+/cm:last
+
+# Smart search
+/cm:chunk search "authentication"
+/cm:chunk graph --depth 2
+
+# Configuration
+/cm:config auto-save.interval 15
+/cm:status
+```
+
+### Agent Benefits
+- **40-60% token usage reduction** through smart context loading
+- **Automatic session continuity** with persistent checkpoints
+- **Cross-agent memory sharing** for complex multi-step workflows
+- **Performance optimization** with intelligent caching
+
+For detailed agent usage, see [Agent Usage Guide](docs/AGENT_USAGE.md).
+
 ## Installation 📦
 
 Claude Memento installs with a single script and creates automatic backups.
