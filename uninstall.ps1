@@ -50,22 +50,37 @@ function Test-Installation {
 # Function to remove from CLAUDE.md
 function Remove-FromClaudeMd {
     if (Test-Path "$ClaudeDir\CLAUDE.md") {
-        Write-Host "Removing Claude Memento section from CLAUDE.md..." -ForegroundColor Yellow
+        Write-Host "Removing Claude Memento section(s) from CLAUDE.md..." -ForegroundColor Yellow
         
         # Create backup before modification
         Copy-Item -Path "$ClaudeDir\CLAUDE.md" -Destination "$ClaudeDir\CLAUDE.md.uninstall.backup" -Force
         
-        # Read content and remove Claude Memento section
-        $content = Get-Content "$ClaudeDir\CLAUDE.md" -Raw
+        $removedCount = 0
         
-        # Remove section between markers including the blank line before
-        $pattern = "(?:\r?\n)?\r?\n$([regex]::Escape($BeginMarker))[\s\S]*?$([regex]::Escape($EndMarker))"
-        $newContent = $content -replace $pattern, ""
+        # Remove ALL existing Claude Memento sections (handle multiple sections)
+        while ((Get-Content "$ClaudeDir\CLAUDE.md" -Raw -ErrorAction SilentlyContinue) -match [regex]::Escape($BeginMarker)) {
+            $content = Get-Content "$ClaudeDir\CLAUDE.md" -Raw
+            
+            # Remove section between markers including the blank line before
+            $pattern = "(?:\r?\n)?\r?\n$([regex]::Escape($BeginMarker))[\s\S]*?$([regex]::Escape($EndMarker))"
+            $newContent = $content -replace $pattern, ""
+            
+            # Save the modified content
+            $newContent | Out-File -FilePath "$ClaudeDir\CLAUDE.md" -Encoding UTF8 -NoNewline
+            $removedCount++
+            
+            # Safety check to prevent infinite loop
+            if ($removedCount -gt 20) {
+                Write-Host "Warning: Removed $removedCount Claude Memento sections. Stopping to prevent infinite loop." -ForegroundColor Red
+                break
+            }
+        }
         
-        # Save the modified content
-        $newContent | Out-File -FilePath "$ClaudeDir\CLAUDE.md" -Encoding UTF8 -NoNewline
-        
-        Write-Host "✓ Removed Claude Memento section from CLAUDE.md" -ForegroundColor Green
+        if ($removedCount -gt 0) {
+            Write-Host "✓ Removed $removedCount Claude Memento section(s) from CLAUDE.md" -ForegroundColor Green
+        } else {
+            Write-Host "ℹ️  No Claude Memento sections found in CLAUDE.md" -ForegroundColor Yellow
+        }
     }
 }
 
