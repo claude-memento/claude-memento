@@ -21,12 +21,50 @@ Write-Host "========================================"
 
 # Function to check if already installed
 function Test-Installation {
+    $installed = $false
+    $installationFound = @()
+    
+    # Check 1: CLAUDE.md marker
     if (Test-Path "$ClaudeDir\CLAUDE.md") {
-        $content = Get-Content "$ClaudeDir\CLAUDE.md" -Raw
+        $content = Get-Content "$ClaudeDir\CLAUDE.md" -Raw -ErrorAction SilentlyContinue
         if ($content -match [regex]::Escape($BeginMarker)) {
-            return $true
+            $installed = $true
+            $installationFound += "CLAUDE.md marker"
         }
     }
+    
+    # Check 2: Memento directory exists
+    if (Test-Path $MementoDir) {
+        $installed = $true
+        $installationFound += "memento directory"
+    }
+    
+    # Check 3: Core CLI script exists
+    if (Test-Path "$MementoDir\src\cli.sh") {
+        $installed = $true
+        $installationFound += "core CLI script"
+    }
+    
+    # Check 4: Command directory exists
+    if ((Test-Path $CMCommandsDir) -and (Get-ChildItem $CMCommandsDir -ErrorAction SilentlyContinue)) {
+        $installed = $true
+        $installationFound += "command files"
+    }
+    
+    # Check 5: Wrapper scripts exist
+    if (Get-ChildItem "$CommandsDir\cm-*.sh" -ErrorAction SilentlyContinue) {
+        $installed = $true
+        $installationFound += "wrapper scripts"
+    }
+    
+    if ($installed) {
+        Write-Host "Found existing installation components:" -ForegroundColor Yellow
+        foreach ($component in $installationFound) {
+            Write-Host "  - $component"
+        }
+        return $true
+    }
+    
     return $false
 }
 
@@ -212,20 +250,51 @@ $config | Out-File -FilePath "$MementoDir\config\default.json" -Encoding UTF8
 # Add Claude Memento section to CLAUDE.md
 Write-Host "Updating CLAUDE.md..." -ForegroundColor Yellow
 
-# Check if CLAUDE.md already has Memento section
-$claudeMdContent = Get-Content "$ClaudeDir\CLAUDE.md" -Raw -ErrorAction SilentlyContinue
-if ($claudeMdContent -notmatch [regex]::Escape($BeginMarker)) {
-    Add-Content -Path "$ClaudeDir\CLAUDE.md" -Value ""
-    # Use the enhanced claude-memento-section.md if it exists, otherwise use basic
-    if (Test-Path "$ScriptDir\templates\claude-memento-section.md") {
-        Get-Content -Path "$ScriptDir\templates\claude-memento-section.md" | Add-Content -Path "$ClaudeDir\CLAUDE.md"
-    } else {
-        Get-Content -Path "$ScriptDir\templates\claude-section.md" | Add-Content -Path "$ClaudeDir\CLAUDE.md"
+# Function to safely remove existing Claude Memento sections
+function Remove-ExistingMementoSections {
+    $tempFile = "$ClaudeDir\CLAUDE.md.install.tmp"
+    $removedCount = 0
+    
+    # Remove all existing Claude Memento sections (could be multiple due to previous issues)
+    while ((Get-Content "$ClaudeDir\CLAUDE.md" -Raw -ErrorAction SilentlyContinue) -match [regex]::Escape($BeginMarker)) {
+        $content = Get-Content "$ClaudeDir\CLAUDE.md" -Raw
+        
+        # Remove section between markers including the blank line before
+        $pattern = "(?:\r?\n)?\r?\n$([regex]::Escape($BeginMarker))[\s\S]*?$([regex]::Escape($EndMarker))"
+        $newContent = $content -replace $pattern, ""
+        
+        $newContent | Out-File -FilePath "$ClaudeDir\CLAUDE.md" -Encoding UTF8 -NoNewline
+        $removedCount++
+        
+        # Safety check to prevent infinite loop
+        if ($removedCount -gt 10) {
+            Write-Host "Warning: Removed $removedCount Claude Memento sections. Stopping to prevent infinite loop." -ForegroundColor Red
+            break
+        }
     }
-    Write-Host "✓ CLAUDE.md updated with Memento commands" -ForegroundColor Green
-} else {
-    Write-Host "⚠ CLAUDE.md already contains Memento section" -ForegroundColor Yellow
+    
+    if ($removedCount -gt 0) {
+        Write-Host "✓ Removed $removedCount existing Claude Memento section(s)" -ForegroundColor Yellow
+    }
 }
+
+# Remove any existing Claude Memento sections first
+$claudeMdContent = Get-Content "$ClaudeDir\CLAUDE.md" -Raw -ErrorAction SilentlyContinue
+if ($claudeMdContent -match [regex]::Escape($BeginMarker)) {
+    Write-Host "Removing existing Claude Memento sections..." -ForegroundColor Yellow
+    Remove-ExistingMementoSections
+}
+
+# Add new Claude Memento section
+Write-Host "Adding new Claude Memento section..." -ForegroundColor Yellow
+Add-Content -Path "$ClaudeDir\CLAUDE.md" -Value ""
+# Use the enhanced claude-memento-section.md if it exists, otherwise use basic
+if (Test-Path "$ScriptDir\templates\claude-memento-section.md") {
+    Get-Content -Path "$ScriptDir\templates\claude-memento-section.md" | Add-Content -Path "$ClaudeDir\CLAUDE.md"
+} else {
+    Get-Content -Path "$ScriptDir\templates\claude-section.md" | Add-Content -Path "$ClaudeDir\CLAUDE.md"
+}
+Write-Host "✓ CLAUDE.md updated with fresh Memento section" -ForegroundColor Green
 
 # Create hooks configuration
 Write-Host "Creating hooks configuration..." -ForegroundColor Yellow
