@@ -11,6 +11,7 @@ $ClaudeDir = "$env:USERPROFILE\.claude"
 $MementoDir = "$ClaudeDir\memento"
 $CommandsDir = "$ClaudeDir\commands"
 $CMCommandsDir = "$CommandsDir\cm"
+$AgentsDir = "$ClaudeDir\agents"
 
 # Markers for CLAUDE.md integration
 $BeginMarker = "<!-- BEGIN_CLAUDE_MEMENTO -->"
@@ -66,6 +67,169 @@ function Test-Installation {
     }
     
     return $false
+}
+
+# Function to detect existing backups
+function Find-ExistingBackups {
+    $backupFound = $false
+    $backupDirs = @()
+    
+    Write-Host "Scanning for existing backups..." -ForegroundColor Yellow
+    
+    # Find installation backups
+    Get-ChildItem -Path "$env:USERPROFILE" -Filter ".claude_backup_*" -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        if (Test-Path "$($_.FullName)\.backup_metadata") {
+            $backupDirs += $_.FullName
+            $backupFound = $true
+        }
+    }
+    
+    # Find update backups
+    Get-ChildItem -Path "$env:USERPROFILE" -Filter ".claude_memento_update_*" -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+        if (Test-Path "$($_.FullName)\.backup_metadata") {
+            $backupDirs += $_.FullName
+            $backupFound = $true
+        }
+    }
+    
+    if ($backupFound) {
+        Write-Host "Found $($backupDirs.Count) backup(s):" -ForegroundColor Green
+        return $backupDirs
+    }
+    
+    return @()
+}
+
+# Function to display backup information
+function Show-BackupInfo {
+    param([string]$BackupDir)
+    
+    $metadataFile = "$BackupDir\.backup_metadata"
+    
+    if (Test-Path $metadataFile) {
+        Write-Host "Backup: $(Split-Path $BackupDir -Leaf)" -ForegroundColor Blue
+        Get-Content $metadataFile | Where-Object { $_ -match "^Backup date:|^Backup type:|^Claude Memento version:" } | ForEach-Object {
+            Write-Host "  $_"
+        }
+        
+        # Check if it has user data
+        if ((Test-Path "$BackupDir\memento\checkpoints") -or (Test-Path "$BackupDir\memento\config")) {
+            Write-Host "  Contains: User data (checkpoints, config)"
+        }
+        if (Test-Path "$BackupDir\CLAUDE.md") {
+            Write-Host "  Contains: CLAUDE.md"
+        }
+    }
+}
+
+# Function to prompt for backup restoration
+function Request-BackupRestore {
+    $backupDirs = Find-ExistingBackups
+    
+    if ($backupDirs.Count -eq 0) {
+        return $null
+    }
+    
+    # Sort backups by date (newest first)
+    $sortedDirs = $backupDirs | Sort-Object -Descending
+    
+    Write-Host "`nFound existing backup(s). Would you like to restore from a backup?" -ForegroundColor Yellow
+    Write-Host "This can recover your previous Claude Memento data and settings."
+    Write-Host ""
+    
+    # Display backups with numbers
+    $i = 1
+    foreach ($dir in $sortedDirs) {
+        Write-Host "[$i] $(Split-Path $dir -Leaf)"
+        Show-BackupInfo $dir
+        Write-Host ""
+        $i++
+    }
+    
+    Write-Host "[0] Skip restoration and continue with fresh installation"
+    Write-Host ""
+    
+    $choice = Read-Host "Select option (0-$($sortedDirs.Count))"
+    
+    if ($choice -match '^[0-9]+$' -and [int]$choice -ge 0 -and [int]$choice -le $sortedDirs.Count) {
+        if ([int]$choice -eq 0) {
+            Write-Host "Skipping restoration. Continuing with installation..." -ForegroundColor Yellow
+            return $null
+        } else {
+            $selectedBackup = $sortedDirs[[int]$choice - 1]
+            Write-Host "Selected: $(Split-Path $selectedBackup -Leaf)" -ForegroundColor Green
+            return $selectedBackup
+        }
+    } else {
+        Write-Host "Invalid choice. Skipping restoration." -ForegroundColor Red
+        return $null
+    }
+}
+
+# Function to restore from backup
+function Restore-FromBackup {
+    param([string]$BackupDir)
+    
+    Write-Host "Restoring from backup..." -ForegroundColor Yellow
+    
+    # Create memento directories if they don't exist
+    @("$MementoDir\checkpoints", "$MementoDir\config", "$MementoDir\logs", "$MementoDir\chunks") | ForEach-Object {
+        New-Item -ItemType Directory -Force -Path $_ | Out-Null
+    }
+    
+    # Restore user data (checkpoints, config, chunks)
+    if (Test-Path "$BackupDir\memento\checkpoints") {
+        Write-Host "Restoring checkpoints..." -ForegroundColor Yellow
+        Copy-Item -Path "$BackupDir\memento\checkpoints\*" -Destination "$MementoDir\checkpoints" -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "✓ Checkpoints restored" -ForegroundColor Green
+    }
+    
+    if (Test-Path "$BackupDir\memento\config") {
+        Write-Host "Restoring configuration..." -ForegroundColor Yellow
+        # Backup current config if exists
+        if (Test-Path "$MementoDir\config\settings.json") {
+            Move-Item -Path "$MementoDir\config\settings.json" -Destination "$MementoDir\config\settings.json.bak" -Force
+        }
+        Copy-Item -Path "$BackupDir\memento\config\*" -Destination "$MementoDir\config" -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "✓ Configuration restored" -ForegroundColor Green
+    }
+    
+    if (Test-Path "$BackupDir\memento\chunks") {
+        Write-Host "Restoring chunks..." -ForegroundColor Yellow
+        Copy-Item -Path "$BackupDir\memento\chunks\*" -Destination "$MementoDir\chunks" -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "✓ Chunks restored" -ForegroundColor Green
+    }
+    
+    if (Test-Path "$BackupDir\memento\logs") {
+        Write-Host "Restoring logs..." -ForegroundColor Yellow
+        Copy-Item -Path "$BackupDir\memento\logs\*" -Destination "$MementoDir\logs" -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Host "✓ Logs restored" -ForegroundColor Green
+    }
+    
+    # Restore CLAUDE.md if user confirms
+    if (Test-Path "$BackupDir\CLAUDE.md") {
+        Write-Host "`nFound CLAUDE.md in backup. Restore it?" -ForegroundColor Yellow
+        Write-Host "Warning: This will replace your current CLAUDE.md"
+        $response = Read-Host "Restore CLAUDE.md? (y/N)"
+        if ($response -eq 'y' -or $response -eq 'Y') {
+            # Backup current CLAUDE.md
+            if (Test-Path "$ClaudeDir\CLAUDE.md") {
+                $timestamp = Get-Date -Format "yyyyMMdd_HHmmss"
+                Copy-Item -Path "$ClaudeDir\CLAUDE.md" -Destination "$ClaudeDir\CLAUDE.md.before_restore.$timestamp" -Force
+            }
+            Copy-Item -Path "$BackupDir\CLAUDE.md" -Destination "$ClaudeDir\CLAUDE.md" -Force
+            Write-Host "✓ CLAUDE.md restored" -ForegroundColor Green
+        } else {
+            Write-Host "Keeping current CLAUDE.md" -ForegroundColor Yellow
+        }
+    }
+    
+    Write-Host "✅ Restoration complete!" -ForegroundColor Green
+    Write-Host "Your previous Claude Memento data has been restored." -ForegroundColor Blue
+    Write-Host ""
+    
+    # Mark that restoration was performed
+    $script:RestoredFromBackup = $BackupDir
 }
 
 # Function to backup entire .claude directory
@@ -159,8 +323,22 @@ if (Test-Installation) {
     exit 1
 }
 
-# Create full backup first
-Backup-ClaudeDirectory
+# Check for existing backups and offer restoration
+$backupToRestore = Request-BackupRestore
+if ($backupToRestore) {
+    Restore-FromBackup $backupToRestore
+    Write-Host "User data restored from backup." -ForegroundColor Green
+    Write-Host "Continuing with system files installation..." -ForegroundColor Yellow
+    Write-Host ""
+}
+
+# Create full backup first (unless we just restored)
+if (-not $RestoredFromBackup) {
+    Backup-ClaudeDirectory
+} else {
+    Write-Host "Skipping full backup (data was just restored)" -ForegroundColor Yellow
+    $script:FullBackupPath = $RestoredFromBackup
+}
 
 # Handle CLAUDE.md
 Write-Host "Checking CLAUDE.md..." -ForegroundColor Yellow
@@ -171,9 +349,21 @@ if (Test-Path "$ClaudeDir\CLAUDE.md") {
     New-MinimalClaudeMd
 }
 
-# Create memento directories
+# Create memento directories (skip if already restored)
 Write-Host "Creating directories..." -ForegroundColor Yellow
-@("$MementoDir\checkpoints", "$MementoDir\config", "$MementoDir\logs", $CommandsDir, $CMCommandsDir) | ForEach-Object {
+if (-not $RestoredFromBackup) {
+    @("$MementoDir\checkpoints", "$MementoDir\config", "$MementoDir\logs", "$MementoDir\chunks") | ForEach-Object {
+        New-Item -ItemType Directory -Force -Path $_ | Out-Null
+    }
+} else {
+    # Only create missing directories
+    @("$MementoDir\checkpoints", "$MementoDir\config", "$MementoDir\logs", "$MementoDir\chunks") | ForEach-Object {
+        if (-not (Test-Path $_)) {
+            New-Item -ItemType Directory -Force -Path $_ | Out-Null
+        }
+    }
+}
+@($CommandsDir, $CMCommandsDir) | ForEach-Object {
     New-Item -ItemType Directory -Force -Path $_ | Out-Null
 }
 
@@ -181,8 +371,7 @@ Write-Host "Creating directories..." -ForegroundColor Yellow
 Write-Host "Installing core files..." -ForegroundColor Yellow
 Copy-Item -Path "$ScriptDir\src" -Destination $MementoDir -Recurse -Force
 
-# Create chunks directory for auto-chunking system
-New-Item -ItemType Directory -Force -Path "$MementoDir\chunks" | Out-Null
+# Chunks directory already created above
 
 # Copy default settings for new features
 if (Test-Path "$ScriptDir\src\config\default-settings.json") {
@@ -214,15 +403,26 @@ Get-ChildItem -Path "$ScriptDir\commands\cm-*.sh" -ErrorAction SilentlyContinue 
     Write-Host "  ✓ Installed: $($_.Name)" -ForegroundColor Green
 }
 
+# Copy agent files to agents directory
+if (Test-Path "$ScriptDir\.claude\agents") {
+    Write-Host "Installing agent files..." -ForegroundColor Yellow
+    New-Item -Path $AgentsDir -ItemType Directory -Force | Out-Null
+    Get-ChildItem -Path "$ScriptDir\.claude\agents\*.md" -ErrorAction SilentlyContinue | ForEach-Object {
+        Copy-Item -Path $_.FullName -Destination $AgentsDir -Force
+        Write-Host "  ✓ Installed: $($_.Name)" -ForegroundColor Green
+    }
+}
+
 # Copy template files as memento reference files
 Write-Host "Installing reference documentation..." -ForegroundColor Yellow
 @("MEMENTO.md", "COMMANDS.md", "PRINCIPLES.md", "RULES.md", "HOOKS.md") | ForEach-Object {
     Copy-Item -Path "$ScriptDir\templates\$_" -Destination "$MementoDir\$_" -Force
 }
 
-# Create default configuration
-Write-Host "Creating default configuration..." -ForegroundColor Yellow
-$config = @'
+# Create default configuration (skip if restored)
+if ((-not $RestoredFromBackup) -or (-not (Test-Path "$MementoDir\config\default.json"))) {
+    Write-Host "Creating default configuration..." -ForegroundColor Yellow
+    $config = @'
 {
   "checkpoint": {
     "retention": 10,
@@ -245,7 +445,10 @@ $config = @'
   }
 }
 '@
-$config | Out-File -FilePath "$MementoDir\config\default.json" -Encoding UTF8
+    $config | Out-File -FilePath "$MementoDir\config\default.json" -Encoding UTF8
+} else {
+    Write-Host "Configuration already restored from backup" -ForegroundColor Yellow
+}
 
 # Add Claude Memento section to CLAUDE.md
 Write-Host "Updating CLAUDE.md..." -ForegroundColor Yellow
@@ -296,9 +499,10 @@ if (Test-Path "$ScriptDir\templates\claude-memento-section.md") {
 }
 Write-Host "✓ CLAUDE.md updated with fresh Memento section" -ForegroundColor Green
 
-# Create hooks configuration
-Write-Host "Creating hooks configuration..." -ForegroundColor Yellow
-$hooks = @'
+# Create hooks configuration (skip if restored)
+if ((-not $RestoredFromBackup) -or (-not (Test-Path "$MementoDir\config\hooks.json"))) {
+    Write-Host "Creating hooks configuration..." -ForegroundColor Yellow
+    $hooks = @'
 {
   "pre-save": [],
   "post-save": [],
@@ -307,9 +511,12 @@ $hooks = @'
   "pre-delete": []
 }
 '@
-$hooks | Out-File -FilePath "$MementoDir\config\hooks.json" -Encoding UTF8
+    $hooks | Out-File -FilePath "$MementoDir\config\hooks.json" -Encoding UTF8
+} else {
+    Write-Host "Hooks configuration already restored from backup" -ForegroundColor Yellow
+}
 
-# Create claude-memento.md for active context tracking
+# Create claude-memento.md for active context tracking (preserve if restored)
 Write-Host "Creating active context tracker..." -ForegroundColor Yellow
 if (-not (Test-Path "$MementoDir\claude-memento.md")) {
     # Try to copy template if it exists
@@ -343,6 +550,8 @@ if (-not (Test-Path "$MementoDir\claude-memento.md")) {
         $activeContext | Out-File -FilePath "$MementoDir\claude-memento.md" -Encoding UTF8
     }
     Write-Host "✓ Active context tracker created" -ForegroundColor Green
+} else {
+    Write-Host "Active context tracker already exists (preserved from backup)" -ForegroundColor Yellow
 }
 
 # Set permissions for shell scripts (if using Git Bash)
@@ -383,8 +592,13 @@ $installLog | Out-File -FilePath "$MementoDir\.install.log" -Encoding UTF8
 
 Write-Host "🎉 Claude Memento installed successfully!" -ForegroundColor Green
 Write-Host ""
-Write-Host "📦 Full backup created:" -ForegroundColor Blue
-Write-Host "   $FullBackupPath"
+if ($RestoredFromBackup) {
+    Write-Host "📦 Data restored from:" -ForegroundColor Blue
+    Write-Host "   $RestoredFromBackup"
+} else {
+    Write-Host "📦 Full backup created:" -ForegroundColor Blue
+    Write-Host "   $FullBackupPath"
+}
 Write-Host ""
 Write-Host "Available commands:"
 Write-Host "  /cm:save      - Create a checkpoint (auto-chunks if >10KB)"

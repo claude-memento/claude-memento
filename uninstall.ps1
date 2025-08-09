@@ -28,6 +28,7 @@ $ClaudeDir = "$env:USERPROFILE\.claude"
 $MementoDir = "$ClaudeDir\memento"
 $CommandsDir = "$ClaudeDir\commands"
 $CMCommandsDir = "$CommandsDir\cm"
+$AgentsDir = "$ClaudeDir\agents"
 
 # Markers for CLAUDE.md integration
 $BeginMarker = "<!-- BEGIN_CLAUDE_MEMENTO -->"
@@ -289,6 +290,15 @@ Get-ChildItem -Path "$CommandsDir\cm-*.sh" -ErrorAction SilentlyContinue | ForEa
     Remove-Item -Path $_.FullName -Force
 }
 Write-Host "✓ Removed wrapper scripts" -ForegroundColor Green
+
+# Remove agent files
+Write-Host "Removing agent files..." -ForegroundColor Yellow
+if (Test-Path $AgentsDir) {
+    Remove-Item -Path $AgentsDir -Recurse -Force
+    Write-Host "✓ Removed agent files" -ForegroundColor Green
+} else {
+    Write-Host "ℹ️  No agent files found" -ForegroundColor Yellow
+}
 
 # Remove claude-memento.md if exists
 if (Test-Path "$MementoDir\claude-memento.md") {

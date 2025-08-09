@@ -26,6 +26,7 @@ CLAUDE_DIR="$HOME/.claude"
 MEMENTO_DIR="$CLAUDE_DIR/memento"
 COMMANDS_DIR="$CLAUDE_DIR/commands"
 CM_COMMANDS_DIR="$COMMANDS_DIR/cm"
+AGENTS_DIR="$CLAUDE_DIR/agents"
 
 # Markers for CLAUDE.md integration
 BEGIN_MARKER="<!-- BEGIN_CLAUDE_MEMENTO -->"
@@ -324,6 +325,15 @@ fi
 echo -e "${YELLOW}Removing wrapper scripts...${NC}"
 rm -f "$COMMANDS_DIR"/cm-*.sh 2>/dev/null
 echo -e "${GREEN}✓ Removed wrapper scripts${NC}"
+
+# Remove agent files
+echo -e "${YELLOW}Removing agent files...${NC}"
+if [ -d "$AGENTS_DIR" ]; then
+    rm -rf "$AGENTS_DIR"
+    echo -e "${GREEN}✓ Removed agent files${NC}"
+else
+    echo -e "${YELLOW}ℹ️  No agent files found${NC}"
+fi
 
 # Remove claude-memento.md if exists
 if [ -f "$MEMENTO_DIR/claude-memento.md" ]; then
