@@ -39,9 +39,47 @@ echo "================================"
 
 # Function to check if already installed
 check_installation() {
+    local installed=false
+    local installation_found=()
+    
+    # Check 1: CLAUDE.md marker
     if [ -f "$CLAUDE_DIR/CLAUDE.md" ] && grep -q "$BEGIN_MARKER" "$CLAUDE_DIR/CLAUDE.md"; then
+        installed=true
+        installation_found+=("CLAUDE.md marker")
+    fi
+    
+    # Check 2: Memento directory exists
+    if [ -d "$MEMENTO_DIR" ]; then
+        installed=true
+        installation_found+=("memento directory")
+    fi
+    
+    # Check 3: Core CLI script exists
+    if [ -f "$MEMENTO_DIR/src/cli.sh" ]; then
+        installed=true
+        installation_found+=("core CLI script")
+    fi
+    
+    # Check 4: Command directory exists
+    if [ -d "$CM_COMMANDS_DIR" ] && [ "$(ls -A "$CM_COMMANDS_DIR" 2>/dev/null)" ]; then
+        installed=true
+        installation_found+=("command files")
+    fi
+    
+    # Check 5: Wrapper scripts exist
+    if ls "$COMMANDS_DIR"/cm-*.sh 1> /dev/null 2>&1; then
+        installed=true
+        installation_found+=("wrapper scripts")
+    fi
+    
+    if [ "$installed" = true ]; then
+        echo -e "${YELLOW}Found existing installation components:${NC}"
+        for component in "${installation_found[@]}"; do
+            echo "  - $component"
+        done
         return 0
     fi
+    
     return 1
 }
 
@@ -243,19 +281,65 @@ EOF
 # Add Claude Memento section to CLAUDE.md
 echo -e "${YELLOW}Updating CLAUDE.md...${NC}"
 
-# Check if CLAUDE.md already has Memento section
-if ! grep -q "$BEGIN_MARKER" "$CLAUDE_DIR/CLAUDE.md" 2>/dev/null; then
-    echo "" >> "$CLAUDE_DIR/CLAUDE.md"
-    # Use the enhanced claude-memento-section.md if it exists, otherwise use basic
-    if [ -f "$SCRIPT_DIR/templates/claude-memento-section.md" ]; then
-        cat "$SCRIPT_DIR/templates/claude-memento-section.md" >> "$CLAUDE_DIR/CLAUDE.md"
-    else
-        cat "$SCRIPT_DIR/templates/claude-section.md" >> "$CLAUDE_DIR/CLAUDE.md"
+# Function to safely remove existing Claude Memento sections
+remove_existing_memento_sections() {
+    local temp_file="$CLAUDE_DIR/CLAUDE.md.install.tmp"
+    local removed_count=0
+    
+    # Remove all existing Claude Memento sections (could be multiple due to previous issues)
+    while grep -q "$BEGIN_MARKER" "$CLAUDE_DIR/CLAUDE.md" 2>/dev/null; do
+        awk '
+        BEGIN { in_section = 0; blank_before = 0 }
+        /^$/ { blank_before = 1; blank_line = $0; next }
+        /<!-- BEGIN_CLAUDE_MEMENTO -->/ { 
+            in_section = 1
+            blank_before = 0
+            next
+        }
+        /<!-- END_CLAUDE_MEMENTO -->/ { 
+            in_section = 0
+            next
+        }
+        !in_section { 
+            if (blank_before) {
+                print blank_line
+                blank_before = 0
+            }
+            print
+        }
+        ' "$CLAUDE_DIR/CLAUDE.md" > "$temp_file"
+        
+        mv "$temp_file" "$CLAUDE_DIR/CLAUDE.md"
+        removed_count=$((removed_count + 1))
+        
+        # Safety check to prevent infinite loop
+        if [ $removed_count -gt 10 ]; then
+            echo -e "${RED}Warning: Removed $removed_count Claude Memento sections. Stopping to prevent infinite loop.${NC}"
+            break
+        fi
+    done
+    
+    if [ $removed_count -gt 0 ]; then
+        echo -e "${YELLOW}✓ Removed $removed_count existing Claude Memento section(s)${NC}"
     fi
-    echo -e "${GREEN}✓ CLAUDE.md updated with Memento commands${NC}"
-else
-    echo -e "${YELLOW}⚠ CLAUDE.md already contains Memento section${NC}"
+}
+
+# Remove any existing Claude Memento sections first
+if grep -q "$BEGIN_MARKER" "$CLAUDE_DIR/CLAUDE.md" 2>/dev/null; then
+    echo -e "${YELLOW}Removing existing Claude Memento sections...${NC}"
+    remove_existing_memento_sections
 fi
+
+# Add new Claude Memento section
+echo -e "${YELLOW}Adding new Claude Memento section...${NC}"
+echo "" >> "$CLAUDE_DIR/CLAUDE.md"
+# Use the enhanced claude-memento-section.md if it exists, otherwise use basic
+if [ -f "$SCRIPT_DIR/templates/claude-memento-section.md" ]; then
+    cat "$SCRIPT_DIR/templates/claude-memento-section.md" >> "$CLAUDE_DIR/CLAUDE.md"
+else
+    cat "$SCRIPT_DIR/templates/claude-section.md" >> "$CLAUDE_DIR/CLAUDE.md"
+fi
+echo -e "${GREEN}✓ CLAUDE.md updated with fresh Memento section${NC}"
 
 # Create claude-memento.md for active context tracking
 echo -e "${YELLOW}Creating active context tracker...${NC}"
